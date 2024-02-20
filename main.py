@@ -1,7 +1,7 @@
 import tkinter as tk
 
 def start():
-    print("Start button clicked!")
+    pass
 
 def blocks():
     isBlocksFrame = True
@@ -12,10 +12,19 @@ def macro():
     isBlocksFrame = False
     btnMacro.config(bg="#555555", activebackground="#555555", activeforeground="white")
     btnBlocks.config(bg="#777777", activebackground="#777777", activeforeground="white")
+
 isBlocksFrame = True
+projectLoc = ""
 
 # Create the main window
 root = tk.Tk()
+with open('name.txt', 'r') as file:
+    name = file.readline()
+    loc = file.readline()
+projectLoc = loc
+name = name.replace('\n', '')
+root.title(name + " - Bot Programmer")
+print(projectLoc)
 
 # Get the screen width and height
 screen_width = root.winfo_screenwidth()
