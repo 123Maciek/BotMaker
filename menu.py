@@ -29,7 +29,8 @@ class Project:
         self.btn.destroy()
 
 def createNewProject():
-    pass
+    subprocess.run(['python', "addproject.py"])
+    loadProjectsFromFile()
 
 def deleteProject():
     pass
@@ -53,6 +54,11 @@ def delete_line(file_path, line_number):
             file.writelines(lines)
 
 def loadProjectsFromFile():
+    global projects
+    if len(projects) > 0:
+        for project in projects:
+            project.destroy()
+    projects = []
     with open("projects.txt", 'r') as file:
         lines = file.readlines()
         num = 1
@@ -67,7 +73,6 @@ def loadProjectsFromFile():
                         localization += " "
                 loc2 = localization[:-1]
                 if os.path.isfile(loc2) == False:
-                    global projects
                     projects = []
                     delete_line("projects.txt", num)
                     loadProjectsFromFile()
@@ -75,6 +80,8 @@ def loadProjectsFromFile():
                 projects.append(Project(frameProjects, name, loc2, i))
                 projects[i].pack()
             num = num + 1
+    if len(projects) > 0:
+        projects[0].btn.config(font=font.Font(weight="bold"), fg="black")
 
 selected_project_number = 0
 projects = []
@@ -101,8 +108,6 @@ frameProjects.pack(anchor="sw", padx=50, pady=30, side=tk.BOTTOM)
 frameProjects.pack_propagate(False)
 
 loadProjectsFromFile()
-if len(projects) > 0:
-    projects[0].btn.config(font=font.Font(weight="bold"), fg="black")
 
 lblTitle = tk.Label(root, text="Bot Programmer", font=("Arial", 30), fg="Black", bg="lightgray")
 lblTitle.pack(anchor="n", pady=20)
