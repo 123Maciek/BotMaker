@@ -4,6 +4,8 @@ import subprocess
 from tkinter import font
 from tkinter import messagebox
 import shutil
+from tkinter import Scrollbar
+from tkinter import *
 
 class Project:
     def __init__(self, parent, name, localization, number):
@@ -25,7 +27,7 @@ class Project:
         global projects
         for project in projects:
             project.btn.config(font=font.Font(), fg = "white")
-        self.btn.config(font=font.Font(weight="bold"), fg="black")
+        self.btn.config(font=font.Font(), fg="black")
 
     def destroy(self):
         self.btn.destroy()
@@ -110,13 +112,13 @@ def loadProjectsFromFile():
                     delete_line("projects.txt", num)
                     loadProjectsFromFile()
                     return
-                projects.append(Project(frameProjects, name, loc2, i))
+                projects.append(Project(projects_frame, name, loc2, i))
                 projects[i].pack()
             num = num + 1
     if len(projects) > 0:
-        projects[0].btn.config(font=font.Font(weight="bold"), fg="black")
+        projects[0].btn.config(font=font.Font(), fg="black")
 
-selected_project_number = 1
+selected_project_number = 0
 projects = []
 
 # Create the main window
@@ -136,9 +138,37 @@ y_coordinate = (screen_height - 600) // 2
 root.geometry(f"800x600+{x_coordinate}+{y_coordinate}")
 root.resizable(width=False, height=False)
 
+# Create the project frame with a vertical scrollbar
 frameProjects = tk.Frame(root, width=700, height=400, bg="dark gray")
-frameProjects.pack(anchor="sw", padx=50, pady=30, side=tk.BOTTOM)
+frameProjects.pack(anchor="sw", padx=50, pady=30, side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 frameProjects.pack_propagate(False)
+
+# Create and pack the vertical scrollbar
+scrollbar = Scrollbar(frameProjects, orient=tk.VERTICAL)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+# Create the canvas to hold the projects
+canvas = Canvas(frameProjects, yscrollcommand=scrollbar.set, highlightthickness=0)
+canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# Create a frame inside the canvas to hold the projects
+projects_frame = tk.Frame(canvas, bg="dark gray")
+canvas.create_window((0, 0), window=projects_frame, anchor="nw")
+
+# Configure the scrollbar to work with the canvas
+scrollbar.config(command=canvas.yview)
+
+# Function to update the scrollbar when the canvas size changes
+def on_canvas_configure(event):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+# Function to handle mouse wheel scrolling
+def on_mousewheel(event):
+    canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+# Bind the canvas to the scrollbar
+canvas.bind("<Configure>", on_canvas_configure)
+canvas.bind("<MouseWheel>", on_mousewheel)
 
 loadProjectsFromFile()
 
