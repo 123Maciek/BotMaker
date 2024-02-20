@@ -67,9 +67,27 @@ def delete_line(file_path, line_number):
         with open(file_path, 'w') as file:
             file.writelines(lines)
 
+def checkForDupes(file_name):
+    if os.path.isfile(file_name):
+        with open(file_name, 'r') as file:
+            lines = file.readlines()
+            num = 1
+            seen = set()
+            for line in lines:
+                if line in seen:
+                    return num
+                else:
+                    seen.add(line)
+                num = num + 1
+            return 0
+
 def loadProjectsFromFile():
     global projects
     global selected_project_number
+    to_delete_line = checkForDupes("projects.txt")
+    while to_delete_line != 0:
+        delete_line("projects.txt", to_delete_line)
+        to_delete_line = checkForDupes("projects.txt")
     selected_project_number = 0
     if len(projects) > 0:
         for project in projects:
@@ -98,7 +116,7 @@ def loadProjectsFromFile():
     if len(projects) > 0:
         projects[0].btn.config(font=font.Font(weight="bold"), fg="black")
 
-selected_project_number = 0
+selected_project_number = 1
 projects = []
 
 # Create the main window
