@@ -71,7 +71,7 @@ def sumbit():
             file.write("\n")
             file.write(name_file_path)
         root.destroy()
-        subprocess.run(['python', "main.py"])
+        subprocess.run(['python', "program.py"])
 
 
 
