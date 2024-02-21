@@ -1,5 +1,9 @@
 import tkinter as tk
 from tkinter import font
+import pyautogui
+from tkinter import messagebox
+import time
+import keyboard
 
 class Block:
     def __init__(self, name, parent, isLast):
@@ -35,9 +39,134 @@ class Block:
         tbCode.delete("1.0", tk.END)
         tbCode.insert(tk.END, "\n".join(map(str, lines)))
 
+def is_key_on_keyboard(key_name):
+    for name in pyautogui.KEYBOARD_KEYS:
+        if key_name == name:
+            return True
+    return False
+
+def is_number(num):
+    try:
+        float(num)
+        return True
+    except ValueError:
+        return False
 
 def start():
-    pass
+    content = tbCode.get("1.0", tk.END)
+    lines = content.splitlines()
+    code_to_exec = '''time.sleep(5)\n'''
+    line_num = 1
+    for line in lines:
+        command = line.split('(')
+        if len(command) > 2:
+            messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+            return
+        if command[0] == "ClickOnKeyboard":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+
+            if is_key_on_keyboard(arg) == False:
+                messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"keyboard.press_and_release('{arg}')\n"
+        elif command[0] == "KeyDown":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+
+            if is_key_on_keyboard(arg) == False:
+                messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"keyboard.press('{arg}')\n"
+        elif command[0] == "KeyUp":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+
+            if is_key_on_keyboard(arg) == False:
+                messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"keyboard.release('{arg}')\n"
+        elif command[0] == "WaitSeconds":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+
+            if is_number(arg) == False:
+                messagebox.showerror("Program Error", f"Not recognized number '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"time.sleep({arg})\n"
+        elif command[0] == "WaitForKeyboard":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+
+            if is_key_on_keyboard(arg) == False:
+                messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += f'''
+while True:
+    if keyboard.is_pressed('{arg}'):
+            break\n'''
+        elif command[0] == "MoveMouseTo":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+            arg = arg.replace(" ", "")
+            pos = arg.split(',')
+            if len(pos) != 2:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            if pos[0].isdigit() == False or pos[1].isdigit() == False:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"pyautogui.moveTo({pos[0]}, {pos[1]})\n"
+        elif command[0] == "MouseUp":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+            if arg != "right" and arg != "left":
+                messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"pyautogui.mouseUp(button='{arg}')\n"
+        elif command[0] == "MouseDown":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1]
+            arg = arg[:-1]
+            if arg != "right" and arg != "left":
+                messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
+                return
+            code_to_exec += f"pyautogui.mouseDown(button='{arg}')\n"
+        elif command[0] == "":
+            continue
+        else:
+            messagebox.showerror("Program Error", f"Not recognized command '{command[0]}' in line {line_num}. \n {line}")
+            return
+        line_num += 1
+    
+    print(code_to_exec)
+    try:
+        exec(code_to_exec)
+    except:
+        messagebox.showerror("Executing Error", "There was an error while executing the program")
 
 def get_cursor_line_number():
     cursor_position = tbCode.index(tk.INSERT)
@@ -87,19 +216,19 @@ def reload_side_frame_obj():
         btnMacro = tk.Button(frameMenu, text="Macro", bg="#777777", fg="white", command=macro, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#777777", activeforeground="white", highlightcolor="white")
 
         codingBlocks = []
-        
-        codingBlocks.append(Block('EndIf', frameMenu, True))
+        codingBlocks.append(Block('Else', frameMenu, False))
+        codingBlocks.append(Block('EndIf', frameMenu, False))
         codingBlocks.append(Block('IfPixelColor(x, y, r, g, b)', frameMenu, False))
         codingBlocks.append(Block('EndLoop', frameMenu, False))
         codingBlocks.append(Block('Loop(number_of_repeats)', frameMenu, False))
-        codingBlocks.append(Block('WaitForKeyboard("key_name")', frameMenu, False))
+        codingBlocks.append(Block('WaitForKeyboard(key_name)', frameMenu, False))
         codingBlocks.append(Block('WaitSeconds(number_of_seconds)', frameMenu, False))
         codingBlocks.append(Block('MoveMouseTo(x, y)', frameMenu, False))
-        codingBlocks.append(Block('MouseUp(x, y, "button_number")', frameMenu, False))
-        codingBlocks.append(Block('MouseDown(x, y, "button_number")', frameMenu, False))
-        codingBlocks.append(Block('KeyUp("key_name")', frameMenu, False))
-        codingBlocks.append(Block('KeyDown("key_name")', frameMenu, False))
-        codingBlocks.append(Block('ClickOnKeyboard("key_name")', frameMenu, False))
+        codingBlocks.append(Block('MouseUp(left/right)', frameMenu, False))
+        codingBlocks.append(Block('MouseDown(left/right)', frameMenu, False))
+        codingBlocks.append(Block('KeyUp(key_name)', frameMenu, False))
+        codingBlocks.append(Block('KeyDown(key_name)', frameMenu, False))
+        codingBlocks.append(Block('ClickOnKeyboard(key_name)', frameMenu, False))
 
         #Generate
         for block in codingBlocks:
