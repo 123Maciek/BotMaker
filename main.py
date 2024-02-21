@@ -87,6 +87,7 @@ def loadProjectsFromFile():
     global projects
     global selected_project_number
     global canvas
+    global scrollbar
     
     to_delete_line = checkForDupes("projects.txt")
     while to_delete_line != 0:
@@ -118,6 +119,14 @@ def loadProjectsFromFile():
                 projects[i].pack()
                 projects[i].btn.bind("<MouseWheel>", on_mousewheel)
             num = num + 1
+    
+    if len(projects) >= 10:
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.configure(yscrollcommand=scrollbar.set)
+    else:
+        scrollbar.pack_forget()
+        canvas.configure(yscrollcommand=None)
+
     if len(projects) > 0:
         projects[0].btn.config(font=font.Font(), fg="black")
     canvas.update_idletasks()
@@ -155,6 +164,7 @@ scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 # Create the canvas to hold the projects
 canvas = Canvas(frameProjects, yscrollcommand=scrollbar.set, highlightthickness=0)
 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+canvas.configure(bg="dark gray")
 
 # Create a frame inside the canvas to hold the projects
 projects_frame = tk.Frame(canvas, bg="dark gray")
@@ -165,15 +175,17 @@ scrollbar.config(command=canvas.yview)
 
 # Function to update the scrollbar when the canvas size changes
 def on_canvas_configure(event):
-    canvas.configure(scrollregion=canvas.bbox("all"))
+    if len(projects) >= 10:
+        canvas.configure(scrollregion=canvas.bbox("all"))
 
 # Function to handle mouse wheel scrolling
 def on_mousewheel(event):
-    canvas_y = canvas.winfo_y()
-    canvas_height = canvas.winfo_height()
+    if len(projects) >= 10:
+        canvas_y = canvas.winfo_y()
+        canvas_height = canvas.winfo_height()
 
-    if canvas_y <= event.y <= canvas_y + canvas_height:
-        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        if canvas_y <= event.y <= canvas_y + canvas_height:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
 # Bind the canvas to the scrollbar
 canvas.bind("<Configure>", on_canvas_configure)
