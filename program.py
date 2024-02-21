@@ -2,18 +2,24 @@ import tkinter as tk
 from tkinter import font
 
 class Block:
-    def __init__(self, name, parent, number):
+    def __init__(self, name, parent, isLast):
         self.name = name
         self.parent = parent
-        self.number = number
+        self.isLast = isLast
         self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=35, command=self.add_block, font=font.Font)
-        self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 950 - (self.number * 50)), padx=40)
+        if self.isLast:
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 100), padx=40)
+        else:
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 30), padx=40)
     
     def pack(self):
         if self.btn.winfo_exists() == False:
             self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=35, command=self.add_block, font=font.Font)
-            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 500 - (self.number * 50)), padx=40)
-    
+            if self.isLast:
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 70), padx=40)
+            else:
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 30), padx=40)
+        
     def destroy(self):
         self.btn.destroy()
     
@@ -81,17 +87,29 @@ def reload_side_frame_obj():
         btnMacro = tk.Button(frameMenu, text="Macro", bg="#777777", fg="white", command=macro, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#777777", activeforeground="white", highlightcolor="white")
 
         codingBlocks = []
-        codingBlocks.append(Block('ClickOnKeyboard("key_name")', frameMenu, 0))
+        
+        codingBlocks.append(Block('EndIf', frameMenu, True))
+        codingBlocks.append(Block('IfPixelColor(x, y, r, g, b)', frameMenu, False))
+        codingBlocks.append(Block('EndLoop', frameMenu, False))
+        codingBlocks.append(Block('Loop(number_of_repeats)', frameMenu, False))
+        codingBlocks.append(Block('WaitForKeyboard("key_name")', frameMenu, False))
+        codingBlocks.append(Block('WaitSeconds(number_of_seconds)', frameMenu, False))
+        codingBlocks.append(Block('MoveMouseTo(x, y)', frameMenu, False))
+        codingBlocks.append(Block('MouseUp(x, y, "button_number")', frameMenu, False))
+        codingBlocks.append(Block('MouseDown(x, y, "button_number")', frameMenu, False))
+        codingBlocks.append(Block('KeyUp("key_name")', frameMenu, False))
+        codingBlocks.append(Block('KeyDown("key_name")', frameMenu, False))
+        codingBlocks.append(Block('ClickOnKeyboard("key_name")', frameMenu, False))
 
+        #Generate
+        for block in codingBlocks:
+            block.pack()
+        
         btnBlocks.pack(anchor="nw", side=tk.LEFT)
         btnMacro.pack(anchor="nw", side=tk.LEFT)
         btnBlocks["state"] = "disabled"
         btnMacro["state"] = "normal"
         btnBlocks["disabledforeground"] = "white"
-
-        #Generate
-        for block in codingBlocks:
-            block.pack()
     else:
         #Macros
         btnMacro["state"] = "disabled"
