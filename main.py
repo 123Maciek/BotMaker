@@ -86,6 +86,8 @@ def checkForDupes(file_name):
 def loadProjectsFromFile():
     global projects
     global selected_project_number
+    global canvas
+    
     to_delete_line = checkForDupes("projects.txt")
     while to_delete_line != 0:
         delete_line("projects.txt", to_delete_line)
@@ -118,6 +120,8 @@ def loadProjectsFromFile():
             num = num + 1
     if len(projects) > 0:
         projects[0].btn.config(font=font.Font(), fg="black")
+    canvas.update_idletasks()
+    canvas.config(scrollregion=canvas.bbox("all"))
 
 selected_project_number = 0
 projects = []

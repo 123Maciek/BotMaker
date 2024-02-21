@@ -12,6 +12,6 @@ Project13 C:/Users/Admin/Documents/BotProgrammer\Project13\Project13.txt
 Project14 C:/Users/Admin/Documents/BotProgrammer\Project14\Project14.txt
 Project15 C:/Users/Admin/Documents/BotProgrammer\Project15\Project15.txt
 Project16 C:/Users/Admin/Documents/BotProgrammer\Project16\Project16.txt
-Project17 C:/Users/Admin/Documents/BotProgrammer\Project17\Project17.txt
-Project18 C:/Users/Admin/Documents/BotProgrammer\Project18\Project18.txt
 Project19 C:/Users/Admin/Documents/BotProgrammer\Project19\Project19.txt
+Project21 C:/Users/Admin/Documents/BotProgrammer\Project21\Project21.txt
+Project20 C:/Users/Admin/Documents/BotProgrammer\Project20\Project20.txt
