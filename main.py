@@ -13,12 +13,12 @@ class Project:
         self.name = name
         self.localization = localization
         self.number = number
-        self.btn = tk.Button(self.parent, text=self.name, fg="white", bg="dark gray", activebackground="dark gray", activeforeground="white", bd=1, relief="solid", highlightthickness=0, height=2, width=100, command=self.set_number, font=font.Font)
+        self.btn = tk.Button(self.parent, text=self.name, fg="white", bg="dark gray", activebackground="dark gray", activeforeground="white", bd=1, relief="solid", highlightthickness=0, height=2, width=100, command=self.set_number, font=font.Font, anchor="w", padx=50)
         self.btn.pack(side=tk.TOP)
 
     def pack(self):
         if self.btn.winfo_exists() == False:
-            self.btn = tk.Button(self.parent, text=self.name, fg="white", bg="dark gray", activebackground="dark gray", activeforeground="white", bd=1, relief="solid", highlightthickness=0, height=2, width=100, command=self.set_number, font=font.Font)
+            self.btn = tk.Button(self.parent, text=self.name, fg="white", bg="dark gray", activebackground="dark gray", activeforeground="white", bd=1, relief="solid", highlightthickness=0, height=2, width=100, command=self.set_number, font=font.Font, anchor="w", padx=50)
             self.btn.pack(side=tk.TOP)
 
     def set_number(self):
@@ -114,6 +114,7 @@ def loadProjectsFromFile():
                     return
                 projects.append(Project(projects_frame, name, loc2, i))
                 projects[i].pack()
+                projects[i].btn.bind("<MouseWheel>", on_mousewheel)
             num = num + 1
     if len(projects) > 0:
         projects[0].btn.config(font=font.Font(), fg="black")
@@ -164,7 +165,11 @@ def on_canvas_configure(event):
 
 # Function to handle mouse wheel scrolling
 def on_mousewheel(event):
-    canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    canvas_y = canvas.winfo_y()
+    canvas_height = canvas.winfo_height()
+
+    if canvas_y <= event.y <= canvas_y + canvas_height:
+        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
 # Bind the canvas to the scrollbar
 canvas.bind("<Configure>", on_canvas_configure)
