@@ -18,7 +18,7 @@ class Block:
         if self.isLast:
             self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 100), padx=40)
         else:
-            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 25), padx=40)
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
     
     def pack(self):
         if self.btn.winfo_exists() == False:
@@ -26,7 +26,7 @@ class Block:
             if self.isLast:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 70), padx=40)
             else:
-                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 25), padx=40)
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
         
     def destroy(self):
         self.btn.destroy()
@@ -239,6 +239,20 @@ def start():
             code_to_exec += f"if pix == tar:\n"
             code_to_exec += add_tabs(tabs+2)
             code_to_exec += f"break\n"
+        elif command[0] == "InfLoop":
+            if len(command) != 1:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"while True:\n"
+            tabs += 1
+            looptabs.append(tabs)
+        elif command[0] == "ExitLoop":
+            if len(command) != 1:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"break\n"
         elif command[0] == "":
             continue
         else:
@@ -306,7 +320,7 @@ def save_time(event):
     loc = projectLoc[:-num]
     loc += "settings.txt"
     if is_number(tbTime.get()) == False:
-        messagebox.showerror("Time Start Error", f"{tbTime.get()} is not a number")
+        messagebox.showerror("Time Start Error", f"Time Start Error: {tbTime.get()} is not a number")
         load_settings()
         return
     stop = ""
@@ -325,7 +339,7 @@ def save_stop(event):
     loc = projectLoc[:-num]
     loc += "settings.txt"
     if is_key_on_keyboard(tbStop.get()) == False:
-        messagebox.showerror("Stop Time Error", f"{tbStop.get()} is not a key")
+        messagebox.showerror("Stop Time Error", f"Stop Time Error: {tbStop.get()} is not a key")
         load_settings()
         return
     time = ""
@@ -369,6 +383,8 @@ def reload_side_frame_obj():
         codingBlocks.append(Block('EndIf', frameMenu, False))
         codingBlocks.append(Block('IfPixelColor(x, y, r, g, b)', frameMenu, False))
         codingBlocks.append(Block('EndLoop', frameMenu, False))
+        codingBlocks.append(Block('ExitLoop', frameMenu, False))
+        codingBlocks.append(Block('InfLoop', frameMenu, False))
         codingBlocks.append(Block('Loop(number_of_repeats)', frameMenu, False))
         codingBlocks.append(Block('WaitForPixel(x, y, r, g, b)', frameMenu, False))
         codingBlocks.append(Block('WaitForKeyboard(key_name)', frameMenu, False))
