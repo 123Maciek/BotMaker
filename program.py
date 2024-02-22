@@ -76,6 +76,8 @@ def start():
     tabs = 0
     looptabs = []
     endlooptabs = []
+    iftabs = []
+    endiftabs = []
     stopkey = tbStop.get()
     line_num = 1
     for line in lines:
@@ -253,6 +255,48 @@ def start():
                 return
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"break\n"
+        elif command[0] == "IfPixelColor":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            arg = arg.replace(" ", "")
+            args = arg.split(',')
+            print(args)
+            if len(args) != 5:
+                messagebox.showerror("Program Error", f"Bad arguments implementation in line {line_num}. \n {line}")
+                return
+            if args[0].isdigit() == False or args[1].isdigit() == False or args[2].isdigit() == False or args[3].isdigit() == False or args[4].isdigit() == False:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            if int(args[2]) < 0 or int(args[2]) > 256 or int(args[3]) < 0 or int(args[3]) > 256 or int(args[4]) < 0 or int(args[4]) > 256:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"screen_width, screen_height = pyautogui.size()\n"
+            code_to_exec += f"screen = ImageGrab.grab(bbox=(0, 0, screen_width, screen_height))\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pix = screen.getpixel(({args[0]}, {args[1]}))\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"tar = ({args[2]}, {args[3]}, {args[4]})\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"if pix == tar:\n"
+            tabs += 1
+            iftabs.append(tabs)
+        elif command[0] == "Else":
+            if len(command) != 1:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs-1)
+            code_to_exec += f"else:\n"
+        elif command[0] == "EndIf":
+            if len(command) != 1:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            endiftabs.append(tabs)
+            tabs -= 1
         elif command[0] == "":
             continue
         else:
@@ -268,6 +312,10 @@ def start():
     
     if looptabs != endlooptabs:
         messagebox.showerror("Program Error", f"Incorrect loop implementation")
+        return
+    
+    if iftabs != endiftabs:
+        messagebox.showerror("Program Error", f"Incorrect if implementation")
         return
 
     print(code_to_exec)
@@ -457,7 +505,7 @@ lblCode = tk.Label(root, text="Code:", font=("Heltevica", 30))
 tbCode = tk.Text(root, width=155, height=55)
 tbCode.bind("<<Modified>>", save_code)
 lblTime = tk.Label(root, text="Time before start: ", font=font.Font())
-btnHelper = tk.Button(root, text="Position and Color Helper", command=helper)
+btnHelper = tk.Button(root, text="Position and Color Helper", command=helper, font=("Heltevica", 15), fg="white", bg="green", bd=1, relief=tk.FLAT, activebackground="darkgreen", activeforeground="white")
 tbTime = tk.Entry(root, width=30)
 lblTime.pack(side=tk.TOP)
 tbTime.pack(side=tk.TOP)
@@ -465,7 +513,7 @@ lblStop = tk.Label(root, text="Stop Key: ", font=font.Font())
 tbStop = tk.Entry(root, width=30)
 lblStop.pack(side=tk.TOP)
 tbStop.pack(side=tk.TOP)
-btnHelper.pack(side=tk.TOP)
+btnHelper.pack(side=tk.TOP, pady=30)
 tbTime.bind("<FocusOut>", save_time)
 tbStop.bind("<FocusOut>", save_stop)
 
