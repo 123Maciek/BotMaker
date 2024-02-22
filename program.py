@@ -6,6 +6,8 @@ import time
 import keyboard
 import sys
 import os
+import subprocess
+from PIL import ImageGrab
 
 class Block:
     def __init__(self, name, parent, isLast):
@@ -16,7 +18,7 @@ class Block:
         if self.isLast:
             self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 100), padx=40)
         else:
-            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 30), padx=40)
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 25), padx=40)
     
     def pack(self):
         if self.btn.winfo_exists() == False:
@@ -24,7 +26,7 @@ class Block:
             if self.isLast:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 70), padx=40)
             else:
-                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 30), padx=40)
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 25), padx=40)
         
     def destroy(self):
         self.btn.destroy()
@@ -54,82 +56,104 @@ def is_number(num):
     except ValueError:
         return False
 
+def add_tabs(number):
+    string = ""
+    for i in range(number):
+        string += "\t"
+    return string
+
+def iteration_var(tabs):
+    string = "i"
+    for i in range(tabs):
+        string += "i"
+    return string
 def start():
     save_time(None)
     save_stop(None)
     content = tbCode.get("1.0", tk.END)
     lines = content.splitlines()
     code_to_exec = f'''time.sleep({int(tbTime.get())})\n'''
+    tabs = 0
+    looptabs = []
+    endlooptabs = []
     stopkey = tbStop.get()
     line_num = 1
     for line in lines:
         command = line.split('(')
+        command[0] = command[0].replace(" ", '')
+        command[0] = command[0].replace('\t', '')
         if len(command) > 2:
             messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
             return
-        if command[0] == "ClickOnKeyboard":
+        if command[0].replace(" ", "") == "ClickOnKeyboard":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
 
             if is_key_on_keyboard(arg) == False:
                 messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"keyboard.press_and_release('{arg}')\n"
-        elif command[0] == "KeyDown":
+        elif command[0].replace(" ", '') == "KeyDown":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
 
             if is_key_on_keyboard(arg) == False:
                 messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"keyboard.press('{arg}')\n"
-        elif command[0] == "KeyUp":
+        elif command[0].replace(" ", '') == "KeyUp":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
 
             if is_key_on_keyboard(arg) == False:
                 messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"keyboard.release('{arg}')\n"
-        elif command[0] == "WaitSeconds":
+        elif command[0].replace(" ", '') == "WaitSeconds":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
 
             if is_number(arg) == False:
                 messagebox.showerror("Program Error", f"Not recognized number '{arg}' in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"time.sleep({arg})\n"
-        elif command[0] == "WaitForKeyboard":
+        elif command[0].replace(" ", '') == "WaitForKeyboard":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
 
             if is_key_on_keyboard(arg) == False:
                 messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
                 return
-            code_to_exec += f'''
-while True:
-    if keyboard.is_pressed('{arg}'):
-            break\n'''
-        elif command[0] == "MoveMouseTo":
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"while True:\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"if keyboard.is_pressed('{arg}'):\n"
+            code_to_exec += add_tabs(tabs+2)
+            code_to_exec += f"break\n"
+        elif command[0].replace(" ", '') == "MoveMouseTo":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
             arg = arg.replace(" ", "")
             pos = arg.split(',')
@@ -139,27 +163,82 @@ while True:
             if pos[0].isdigit() == False or pos[1].isdigit() == False:
                 messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"pyautogui.moveTo({pos[0]}, {pos[1]})\n"
-        elif command[0] == "MouseUp":
+        elif command[0].replace(" ", '') == "MouseUp":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
             if arg != "right" and arg != "left":
                 messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"pyautogui.mouseUp(button='{arg}')\n"
         elif command[0] == "MouseDown":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            arg = command[1]
+            arg = command[1].replace(" ", '')
             arg = arg[:-1]
             if arg != "right" and arg != "left":
                 messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
                 return
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"pyautogui.mouseDown(button='{arg}')\n"
+        elif command[0] == "Loop":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            if arg.isdigit() == False:
+                messagebox.showerror("Program Error", f"Not recognized digit '{arg}' in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"for {iteration_var(tabs)} in range({arg}):\n"
+            tabs += 1
+            looptabs.append(tabs)
+        elif command[0] == "EndLoop":
+            if len(command) != 1:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            endlooptabs.append(tabs)
+            tabs -= 1
+        elif command[0].replace(" ", '') == "WaitForPixel":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            arg = arg.replace(" ", "")
+            args = arg.split(',')
+            print(args)
+            if len(args) != 5:
+                messagebox.showerror("Program Error", f"Bad arguments implementation in line {line_num}. \n {line}")
+                return
+            if args[0].isdigit() == False or args[1].isdigit() == False or args[2].isdigit() == False or args[3].isdigit() == False or args[4].isdigit() == False:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            if int(args[2]) < 0 or int(args[2]) > 256 or int(args[3]) < 0 or int(args[3]) > 256 or int(args[4]) < 0 or int(args[4]) > 256:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"screen_width, screen_height = pyautogui.size()\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"while True:\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"screen = ImageGrab.grab(bbox=(0, 0, screen_width, screen_height))\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"pix = screen.getpixel(({args[0]}, {args[1]}))\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"tar = ({args[2]}, {args[3]}, {args[4]})\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"if pix == tar:\n"
+            code_to_exec += add_tabs(tabs+2)
+            code_to_exec += f"break\n"
         elif command[0] == "":
             continue
         else:
@@ -167,12 +246,16 @@ while True:
             return
         
         if command[0] != "":
-            code_to_exec += f'''
-if keyboard.is_pressed("{stopkey}"):
-    sys.exit()\n'''
-
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"if keyboard.is_pressed('{stopkey}'):\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"sys.exit()\n"
         line_num += 1
     
+    if looptabs != endlooptabs:
+        messagebox.showerror("Program Error", f"Incorrect loop implementation")
+        return
+
     print(code_to_exec)
     try:
         exec(code_to_exec)
@@ -233,6 +316,8 @@ def save_time(event):
     with open(loc, 'w') as file:
         file.write(stop + "\n" + tbTime.get())
 
+def helper():
+    subprocess.run(['python', "posHelper.py"])
 
 def save_stop(event):
     global tbStop
@@ -285,6 +370,7 @@ def reload_side_frame_obj():
         codingBlocks.append(Block('IfPixelColor(x, y, r, g, b)', frameMenu, False))
         codingBlocks.append(Block('EndLoop', frameMenu, False))
         codingBlocks.append(Block('Loop(number_of_repeats)', frameMenu, False))
+        codingBlocks.append(Block('WaitForPixel(x, y, r, g, b)', frameMenu, False))
         codingBlocks.append(Block('WaitForKeyboard(key_name)', frameMenu, False))
         codingBlocks.append(Block('WaitSeconds(number_of_seconds)', frameMenu, False))
         codingBlocks.append(Block('MoveMouseTo(x, y)', frameMenu, False))
@@ -355,6 +441,7 @@ lblCode = tk.Label(root, text="Code:", font=("Heltevica", 30))
 tbCode = tk.Text(root, width=155, height=55)
 tbCode.bind("<<Modified>>", save_code)
 lblTime = tk.Label(root, text="Time before start: ", font=font.Font())
+btnHelper = tk.Button(root, text="Position and Color Helper", command=helper)
 tbTime = tk.Entry(root, width=30)
 lblTime.pack(side=tk.TOP)
 tbTime.pack(side=tk.TOP)
@@ -362,6 +449,7 @@ lblStop = tk.Label(root, text="Stop Key: ", font=font.Font())
 tbStop = tk.Entry(root, width=30)
 lblStop.pack(side=tk.TOP)
 tbStop.pack(side=tk.TOP)
+btnHelper.pack(side=tk.TOP)
 tbTime.bind("<FocusOut>", save_time)
 tbStop.bind("<FocusOut>", save_stop)
 
