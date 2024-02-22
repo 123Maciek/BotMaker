@@ -4,6 +4,8 @@ import pyautogui
 from tkinter import messagebox
 import time
 import keyboard
+import sys
+import os
 
 class Block:
     def __init__(self, name, parent, isLast):
@@ -53,9 +55,12 @@ def is_number(num):
         return False
 
 def start():
+    save_time(None)
+    save_stop(None)
     content = tbCode.get("1.0", tk.END)
     lines = content.splitlines()
-    code_to_exec = '''time.sleep(5)\n'''
+    code_to_exec = f'''time.sleep({int(tbTime.get())})\n'''
+    stopkey = tbStop.get()
     line_num = 1
     for line in lines:
         command = line.split('(')
@@ -160,11 +165,19 @@ while True:
         else:
             messagebox.showerror("Program Error", f"Not recognized command '{command[0]}' in line {line_num}. \n {line}")
             return
+        
+        if command[0] != "":
+            code_to_exec += f'''
+if keyboard.is_pressed("{stopkey}"):
+    sys.exit()\n'''
+
         line_num += 1
     
     print(code_to_exec)
     try:
         exec(code_to_exec)
+    except SystemExit:
+        messagebox.showinfo("Bot Stopped", f"Bot succesfully has been stopped using key {stopkey}")
     except:
         messagebox.showerror("Executing Error", "There was an error while executing the program")
 
@@ -203,6 +216,57 @@ def load_code():
             content += line
         tbCode.delete("1.0", tk.END)
         tbCode.insert(tk.END, content)
+
+def save_time(event):
+    global tbTime
+    num = len(name) + 4
+    loc = projectLoc[:-num]
+    loc += "settings.txt"
+    if is_number(tbTime.get()) == False:
+        messagebox.showerror("Time Start Error", f"{tbTime.get()} is not a number")
+        load_settings()
+        return
+    stop = ""
+    if os.path.isfile(loc) == True:
+        with open(loc, 'r') as file:
+            stop = file.readline().replace('\n', '')
+    with open(loc, 'w') as file:
+        file.write(stop + "\n" + tbTime.get())
+
+
+def save_stop(event):
+    global tbStop
+    num = len(name) + 4
+    loc = projectLoc[:-num]
+    loc += "settings.txt"
+    if is_key_on_keyboard(tbStop.get()) == False:
+        messagebox.showerror("Stop Time Error", f"{tbStop.get()} is not a key")
+        load_settings()
+        return
+    time = ""
+    if os.path.isfile(loc) == True:
+        with open(loc, 'r') as file:
+            lines = file.readlines()
+            if len(lines) == 2:
+                time = lines[1].replace('\n', '')
+    with open(loc, 'w') as file:
+        file.write(tbStop.get() + "\n" + time)
+
+def load_settings():
+    num = len(name) + 4
+    loc = projectLoc[:-num]
+    loc += "settings.txt"
+    if os.path.isfile(loc) == True:
+        with open(loc, 'r') as file:
+            lines = file.readlines()
+            if len(lines) == 1:
+                tbStop.delete(0, tk.END)
+                tbStop.insert(0, lines[0].replace('\n', ''))
+            if len(lines) == 2:
+                tbStop.delete(0, tk.END)
+                tbStop.insert(0, lines[0].replace('\n', ''))
+                tbTime.delete(0, tk.END)
+                tbTime.insert(0, lines[1].replace('\n', ''))
 
 def reload_side_frame_obj():
     if isBlocksFrame:
@@ -290,6 +354,16 @@ btnMacro = tk.Button(frameMenu, text="Macro", bg="#777777", fg="white", command=
 lblCode = tk.Label(root, text="Code:", font=("Heltevica", 30))
 tbCode = tk.Text(root, width=155, height=55)
 tbCode.bind("<<Modified>>", save_code)
+lblTime = tk.Label(root, text="Time before start: ", font=font.Font())
+tbTime = tk.Entry(root, width=30)
+lblTime.pack(side=tk.TOP)
+tbTime.pack(side=tk.TOP)
+lblStop = tk.Label(root, text="Stop Key: ", font=font.Font())
+tbStop = tk.Entry(root, width=30)
+lblStop.pack(side=tk.TOP)
+tbStop.pack(side=tk.TOP)
+tbTime.bind("<FocusOut>", save_time)
+tbStop.bind("<FocusOut>", save_stop)
 
 # Set padding for the button (10 px from top and right)
 btnStart.pack(pady=20, padx=20, anchor="ne")
@@ -300,6 +374,7 @@ tbCode.pack()
 
 load_code()
 reload_side_frame_obj()
+load_settings()
 
 # Run the Tkinter event loop
 root.mainloop()
