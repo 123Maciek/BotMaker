@@ -73,6 +73,7 @@ def start():
     content = tbCode.get("1.0", tk.END)
     lines = content.splitlines()
     code_to_exec = f'''time.sleep({int(tbTime.get())})\n'''
+    code_to_exec += "end_loop = False\n"
     tabs = 0
     looptabs = []
     endlooptabs = []
@@ -146,11 +147,19 @@ def start():
                 messagebox.showerror("Program Error", f"Not recognized key name '{arg}' in line {line_num}. \n {line}")
                 return
             code_to_exec += add_tabs(tabs)
-            code_to_exec += f"while True:\n"
+            code_to_exec += f"while end_loop == False: \n"
             code_to_exec += add_tabs(tabs+1)
-            code_to_exec += f"if keyboard.is_pressed('{arg}'):\n"
+            code_to_exec += f"if keyboard.is_pressed('{arg}'): \n"
             code_to_exec += add_tabs(tabs+2)
-            code_to_exec += f"break\n"
+            code_to_exec += f"end_loop = True\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"time.sleep(0.05)\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f"if keyboard.is_pressed('{stopkey}'):\n"
+            code_to_exec += add_tabs(tabs+2)
+            code_to_exec += f"sys.exit()\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"end_loop = False \n"
         elif command[0].replace(" ", '') == "MoveMouseTo":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -216,7 +225,6 @@ def start():
             arg = arg[:-1]
             arg = arg.replace(" ", "")
             args = arg.split(',')
-            print(args)
             if len(args) != 5:
                 messagebox.showerror("Program Error", f"Bad arguments implementation in line {line_num}. \n {line}")
                 return
@@ -319,6 +327,7 @@ def start():
         return
 
     print(code_to_exec)
+
     try:
         exec(code_to_exec)
     except SystemExit:

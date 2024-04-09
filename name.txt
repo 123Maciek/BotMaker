@@ -1,2 +1,2 @@
-Test
-C:/Users/Admin/Documents/BotProgrammer\Test\Test.txt
+Macro-Test
+C:/Users/Admin/Documents/BotProgrammer\Macro-Test\Macro-Test.txt
