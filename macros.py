@@ -261,6 +261,7 @@ def on_checkbox_click():
 root = tk.Tk()
 root.configure(bg="lightgray")
 root.protocol("WM_DELETE_WINDOW", on_window_close)
+root.title("Macro Recorder")
 
 # Get the screen width and height
 screen_width = root.winfo_screenwidth()

@@ -8,6 +8,8 @@ import sys
 import os
 import subprocess
 from PIL import ImageGrab
+from tkinter import Scrollbar
+from tkinter import Canvas
 
 class Block:
     def __init__(self, name, parent, isLast):
@@ -42,6 +44,56 @@ class Block:
             lines.insert(line_num, self.name)
         tbCode.delete("1.0", tk.END)
         tbCode.insert(tk.END, "\n".join(map(str, lines)))
+
+class Macro:
+    def __init__(self, name, parent):
+        self.name = name
+        self.parent = parent
+        self.location = projectLoc[:-(len(projectName)+4)] + "Macros\\" + name + ".txt"
+        self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=45, command=self.add_macro, font=font.Font, bg="#EEEEEE")
+        self.btn.bind("<Button-3>", self.remove_macro)
+        self.btn.pack(side=tk.TOP)
+    
+    def pack(self):
+        if self.btn.winfo_exists() == False:
+            self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=45, command=self.add_macro, font=font.Font, bg="#EEEEEE")
+            self.btn.bind("<Button-3>", self.remove_macro)
+            self.btn.pack(side=tk.TOP)
+
+    def destroy(self):
+        self.btn.destroy()
+
+    def add_macro(self):
+        global tbCode
+        line_num = get_cursor_line_number()
+        content = tbCode.get("1.0", tk.END)
+        lines = content.splitlines()
+        if lines[line_num-1] == "":
+            lines[line_num-1] = f"Macro({self.name})"
+        else:
+            lines.insert(line_num, f"Macro({self.name})")
+        tbCode.delete("1.0", tk.END)
+        tbCode.insert(tk.END, "\n".join(map(str, lines)))
+    
+    def remove_macro(self, event):
+        result = messagebox.askquestion("Confirmation", f'Are you sure you want to delete "{self.name}" macro?')
+        if result.lower() == 'yes':
+            if os.path.isfile(self.location):
+                os.remove(self.location)
+                reload_side_frame_obj()
+
+
+def get_txt_files(directory):
+    txt_files = []
+    
+    try:
+        for file_name in os.listdir(directory):
+            if file_name.endswith(".txt"):
+                txt_files.append(file_name)
+    except OSError:
+        print(f"Error: Unable to access directory {directory}")
+    
+    return txt_files
 
 def is_key_on_keyboard(key_name):
     for name in pyautogui.KEYBOARD_KEYS:
@@ -153,7 +205,9 @@ def start():
             code_to_exec += add_tabs(tabs+2)
             code_to_exec += f"end_loop = True\n"
             code_to_exec += add_tabs(tabs+1)
-            code_to_exec += f"time.sleep(0.05)\n"
+            code_to_exec += f"while keyboard.is_pressed('{arg}'):\n"
+            code_to_exec += add_tabs(tabs+2)
+            code_to_exec += f"pass\n"
             code_to_exec += add_tabs(tabs+1)
             code_to_exec += f"if keyboard.is_pressed('{stopkey}'):\n"
             code_to_exec += add_tabs(tabs+2)
@@ -354,6 +408,10 @@ def macro():
     btnBlocks.config(bg="#777777", activebackground="#777777", activeforeground="white")
     reload_side_frame_obj()
 
+def add_macro():
+    subprocess.run(['python', "macros.py"])
+    reload_side_frame_obj()
+
 def save_code(event):
     global tbCode
     tbCode.edit_modified(False)
@@ -427,13 +485,31 @@ def load_settings():
 def reload_side_frame_obj():
     if isBlocksFrame:
         #Blocks
+        global btnAddMacro
         global codingBlocks
         global btnMacro
         global btnBlocks
+        global frameMacros
+        global canvas
+        global scrollbar
+        global macroBlocks
+        global macros_frame
+
         btnMacro.destroy()
         btnBlocks.destroy()
+        try:
+            btnAddMacro.destroy()
+        except:
+            pass
+        try:
+            frameMacros.destroy()
+        except:
+            pass
         btnBlocks = tk.Button(frameMenu, text="Blocks", bg="#555555", fg="white", command=blocks, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#555555", activeforeground="white", highlightcolor="white")
         btnMacro = tk.Button(frameMenu, text="Macro", bg="#777777", fg="white", command=macro, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#777777", activeforeground="white", highlightcolor="white")
+
+        for mcr in macroBlocks:
+            mcr.destroy()
 
         codingBlocks = []
         codingBlocks.append(Block('Else', frameMenu, False))
@@ -464,16 +540,77 @@ def reload_side_frame_obj():
         btnBlocks["disabledforeground"] = "white"
     else:
         #Macros
+        btnMacro.destroy()
+        btnBlocks.destroy()
+        btnBlocks = tk.Button(frameMenu, text="Blocks", bg="#777777", fg="white", command=blocks, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#555555", activeforeground="white", highlightcolor="white")
+        btnMacro = tk.Button(frameMenu, text="Macro", bg="#555555", fg="white", command=macro, font=("Helvetica", 15), width=18, bd=1, relief="solid", highlightthickness=0, activebackground="#777777", activeforeground="white", highlightcolor="white")
+
+        for block in codingBlocks:
+            block.destroy()
+        
+        try:
+            btnAddMacro.destroy()
+        except:
+            pass
+        btnAddMacro = tk.Button(frameMenu, text="Add Macro", bg="green", fg="white", command=add_macro, font=("Helvetica", 30), relief=tk.FLAT, bd=0, width=10, activebackground="dark green", activeforeground="white")
+        
+
+        try:
+            frameMacros.destroy()
+        except:
+            pass
+
+        for mcr in macroBlocks:
+            mcr.destroy()
+
+        frameMacros = tk.Frame(frameMenu, width=410, height=850, bg="#666666")
+        frameMacros.pack(side=tk.BOTTOM, anchor="sw")
+        btnAddMacro.pack(side=tk.BOTTOM, anchor="sw", padx=85, pady=50)
+        frameMacros.pack_propagate(False)
+        scrollbar = Scrollbar(frameMacros, orient=tk.VERTICAL)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas = Canvas(frameMacros, yscrollcommand=scrollbar.set, highlightthickness=0)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        canvas.configure(bg="#666666")
+        macros_frame = tk.Frame(canvas, bg="#666666")
+        canvas.create_window((0, 0), window=macros_frame, anchor="nw")
+        scrollbar.config(command=canvas.yview)
+        canvas.bind("<Configure>", on_canvas_configure)
+        canvas.bind("<MouseWheel>", on_mousewheel)
+
+        macroBlocks = []
+        txt_files = get_txt_files(projectLoc[:-(len(projectName)+4)] + "Macros\\")
+        for txt in txt_files:
+            macroBlocks.append(Macro(txt[:-4], macros_frame))
+
+        for mcr in macroBlocks:
+            mcr.pack()
+            mcr.btn.bind("<MouseWheel>", on_mousewheel)
+
+        btnBlocks.pack(anchor="nw", side=tk.LEFT)
+        btnMacro.pack(anchor="nw", side=tk.LEFT)
+
         btnMacro["state"] = "disabled"
         btnBlocks["state"] = "normal"
         btnMacro["disabledforeground"] = "white"
 
-        for block in codingBlocks:
-            block.destroy()
-
 isBlocksFrame = True
 projectLoc = ""
 codingBlocks = []
+macroBlocks = []
+
+def on_canvas_configure(event):
+    if len(macroBlocks) >= 19:
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+
+def on_mousewheel(event):
+    if len(macroBlocks) >= 19:
+        canvas_y = canvas.winfo_y()
+        canvas_height = canvas.winfo_height()
+
+        if canvas_y <= event.y <= canvas_y + canvas_height:
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
 # Create the main window
 root = tk.Tk()
@@ -482,6 +619,7 @@ with open('name.txt', 'r') as file:
     loc = file.readline()
 projectLoc = loc
 name = name.replace('\n', '')
+projectName = name
 root.title(name + " - Bot Programmer")
 
 # Get the screen width and height
@@ -497,9 +635,13 @@ root.geometry(f"1920x1080+{x_coordinate}+{y_coordinate}")
 root.resizable(width=False, height=False)
 
 # Create a frame on the left side with dark gray background
-frameMenu = tk.Frame(root, width=400, height=screen_height, bg="dark gray")
+frameMenu = tk.Frame(root, width=410, height=screen_height, bg="dark gray")
 frameMenu.pack(side=tk.LEFT, fill=tk.Y)
-
+btnAddMacro = tk.Button(frameMenu, text="Add Macro", bg="green", fg="white", command=add_macro, font=("Helvetica", 30), relief=tk.FLAT, bd=0, width=10, activebackground="dark green", activeforeground="white")
+frameMacros = tk.Frame(frameMenu, width=400, height=700, bg="dark gray")
+scrollbar = Scrollbar(frameMacros, orient=tk.VERTICAL)
+canvas = Canvas(frameMacros, yscrollcommand=scrollbar.set, highlightthickness=0)
+macros_frame = tk.Frame(canvas, bg="#666666")
 
 # Create the green button with white text, adjust font size, padding, and remove onclick effect and border
 btnStart = tk.Button(root, text="Start", bg="green", fg="white", command=start, font=("Helvetica", 30),
