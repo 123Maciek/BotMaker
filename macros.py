@@ -44,8 +44,10 @@ def save_macro():
     new_macro_name = macro_name.replace(" ", "")
     new_macro_name = new_macro_name.replace(".", "")
     new_macro_name = new_macro_name.replace("\n", "")
+    new_macro_name = new_macro_name.replace("(", "")
+    new_macro_name = new_macro_name.replace(")", "")
     if new_macro_name != macro_name:
-        messagebox.showerror("Macro Name error", "Incorrect macro name value. Macro's name cannot contain space and dot")
+        messagebox.showerror("Macro Name error", "Incorrect macro name value. Macro's name cannot contain space, dots and brackets")
         return
     
     macro_loc += f"Macros\\{macro_name}.txt"

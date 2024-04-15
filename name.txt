@@ -1,2 +1,2 @@
-Macro-Test
-C:/Users/Admin/Documents/BotProgrammer\Macro-Test\Macro-Test.txt
+Notepad
+C:/Users/Admin/Documents/BotMaker\Notepad\Notepad.txt

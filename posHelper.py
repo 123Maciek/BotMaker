@@ -23,7 +23,7 @@ def get_info():
 
 # Create the main window
 root = tk.Tk()
-root.title("Bot Programmer")
+root.title("Bot Maker")
 root.configure(bg="lightgray")
 
 # Get the screen width and height

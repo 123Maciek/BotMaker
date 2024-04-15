@@ -137,7 +137,7 @@ projects = []
 
 # Create the main window
 root = tk.Tk()
-root.title("Bot Programmer")
+root.title("Bot Maker")
 root.configure(bg="lightgray")
 
 # Get the screen width and height
@@ -193,7 +193,7 @@ canvas.bind("<MouseWheel>", on_mousewheel)
 
 loadProjectsFromFile()
 
-lblTitle = tk.Label(root, text="Bot Programmer", font=("Arial", 30), fg="Black", bg="lightgray")
+lblTitle = tk.Label(root, text="Bot Maker", font=("Arial", 30), fg="Black", bg="lightgray")
 lblTitle.pack(anchor="n", pady=20)
 btnAddProject = tk.Button(root, text="Create New Project", font=("Arial", 12), fg="White", bg="green", activebackground="green", activeforeground="white", relief=tk.FLAT, bd=0, command=createNewProject)
 btnAddProject.pack(side=tk.LEFT, anchor="n", padx=(50, 10))

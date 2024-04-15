@@ -126,6 +126,60 @@ def start():
     lines = content.splitlines()
     code_to_exec = f'''time.sleep({int(tbTime.get())})\n'''
     code_to_exec += "end_loop = False\n"
+    code_to_exec += r"""
+def play_actions(act):
+    start = time.time()
+
+    for action in act:
+        action_type, *params, timestamp = action
+
+        elapsed_time = time.time() - start
+        delay = timestamp - elapsed_time
+
+        pyautogui.PAUSE = max(0, delay)
+
+        if action_type == "mouse_move":
+            x, y = params
+            pyautogui.moveTo(x, y)
+        elif action_type == "mouse_press":
+            x, y, button = params
+            pyautogui.mouseDown(x, y, button)
+        elif action_type == "mouse_release":
+            x, y, button = params
+            pyautogui.mouseUp(x, y, button)
+        elif action_type == "key_press":
+            key = params[0]
+            pyautogui.keyDown(key)
+        elif action_type == "key_release":
+            key = params[0]
+            pyautogui.keyUp(key)
+def text_to_action(text):
+    lines = text.split("\n")
+    act = []
+    for line in lines:
+        if line != "":
+            line = line[:-1]
+            line = line[1:]
+            line = line.replace(" ", "")
+            args = line.split(",")
+            arr = []
+            for arg in args:
+                if arg[0] == "'" and arg[len(arg)-1] == "'":
+                    arg = arg[1:]
+                    arg = arg[:-1]
+                else:
+                    try:
+                        arg = int(arg)
+                    except:
+                        arg = float(arg)
+                arr.append(arg)
+            act.append(arr)
+    return act
+
+
+"""
+    code_to_exec += "\n"
+    code_to_exec += f'macroLoc = r"{projectLoc[:-(len(projectName)+5)] + "/Macros/"}"\n'
     tabs = 0
     looptabs = []
     endlooptabs = []
@@ -359,6 +413,17 @@ def start():
                 return
             endiftabs.append(tabs)
             tabs -= 1
+        elif command[0] == "Macro":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            #print(arg)
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"with open(macroLoc + '{arg}.txt', 'r') as file:\n"
+            code_to_exec += add_tabs(tabs+1)
+            code_to_exec += f'play_actions(text_to_action(file.read()))\n'
         elif command[0] == "":
             continue
         else:
@@ -586,6 +651,15 @@ def reload_side_frame_obj():
         for mcr in macroBlocks:
             mcr.pack()
             mcr.btn.bind("<MouseWheel>", on_mousewheel)
+        
+        if len(macroBlocks) >= 19:
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            canvas.configure(yscrollcommand=scrollbar.set)
+        else:
+            scrollbar.pack_forget()
+            canvas.configure(yscrollcommand=None)
+        canvas.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
 
         btnBlocks.pack(anchor="nw", side=tk.LEFT)
         btnMacro.pack(anchor="nw", side=tk.LEFT)
@@ -620,7 +694,7 @@ with open('name.txt', 'r') as file:
 projectLoc = loc
 name = name.replace('\n', '')
 projectName = name
-root.title(name + " - Bot Programmer")
+root.title(name + " - Bot Maker")
 
 # Get the screen width and height
 screen_width = root.winfo_screenwidth()
