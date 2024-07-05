@@ -94,7 +94,7 @@ def get_info():
     tbColor.insert(0, f"{pixel_color}")
 
     submenu.submenu.delete(0, 'end')
-    new_commends = [f"MoveMouseTo({mouse_x}, {mouse_y})", f"WaitForPixel({mouse_x}, {mouse_y}, {pixel_color})", f"IfPixelColor({mouse_x}, {mouse_y}, {pixel_color})"]
+    new_commends = [f"MoveMouseTo({mouse_x}, {mouse_y})", f"WaitForPixel({mouse_x}, {mouse_y}, {pixel_color})", f"IfPixelColor({mouse_x}, {mouse_y}, {pixel_color})", f"MoveAndClickMouse({mouse_x}, {mouse_y}, left / right )"]
     for btn in new_commends:
             submenu.submenu.add_command(label=btn, command=lambda b=btn: submenu.add_to_entry(b), font=("Helvetica", 13))
     submenu.enable()

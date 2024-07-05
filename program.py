@@ -214,7 +214,6 @@ def text_to_action(text):
     line_num = 1
     for line in lines:
         line = line.split("#")[0]
-        print(line)
 
         command = line.split('(')
         command[0] = command[0].replace(" ", '')
@@ -409,7 +408,6 @@ def text_to_action(text):
             arg = arg[:-1]
             arg = arg.replace(" ", "")
             args = arg.split(',')
-            print(args)
             if len(args) != 5:
                 messagebox.showerror("Program Error", f"Bad arguments implementation in line {line_num}. \n {line}")
                 return
@@ -454,6 +452,53 @@ def text_to_action(text):
             code_to_exec += f"with open(macroLoc + '{arg}.txt', 'r') as file:\n"
             code_to_exec += add_tabs(tabs+1)
             code_to_exec += f'play_actions(text_to_action(file.read()))\n'
+        elif command[0] == "WriteText":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.write('{arg}')\n"
+        elif command[0] == "ClickMouse":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            if arg != "right" and arg != "left":
+                messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.mouseDown(button='{arg}')\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.mouseUp(button='{arg}')\n"
+        elif command[0] == "MoveAndClickMouse":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            pos = arg.split(',')[:-1]
+            if len(pos) != 2:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            if pos[0].isdigit() == False or pos[1].isdigit() == False:
+                messagebox.showerror("Program Error", f"Bad position implementation in line {line_num}. \n {line}")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            arg = arg.split(',')[2]
+            if arg != "right" and arg != "left":
+                messagebox.showerror("Program Error", f"Not recognized mouse button in line {line_num}. \n {line}")
+                return
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.moveTo({pos[0]}, {pos[1]})\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.mouseDown(button='{arg}')\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"pyautogui.mouseUp(button='{arg}')\n"
         elif command[0] == "":
             continue
         else:
@@ -639,7 +684,7 @@ def reload_side_frame_obj():
         codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop", is_last=True))
         codingBlocks.append(SubMenu(frameMenu, ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"], "If"))
         codingBlocks.append(SubMenu(frameMenu, ["WaitSeconds( number_of_seconds )", "WaitForKeyboard( keyname )", "WaitForPixel(x, y, r, g, b)", ], "Wait"))
-        codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MoveMouseTo(x, y)"], "Mouse"))
+        codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MoveMouseTo(x, y)", "ClickMouse( left / right )", "MoveAndClickMouse(x, y, left / right)"], "Mouse"))
         codingBlocks.append(SubMenu(frameMenu, ["ClickOnKeyboard( keyname )", "KeyDown( keyname )", "KeyUp( keyname )", "WriteText( text )"], "Keyboard"))
 
         #Generate
