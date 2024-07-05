@@ -1,1 +1,2 @@
 NewEL C:/Users/Admin/Documents/BotMaker\NewEL\NewEL.txt
+Test C:/Users/Admin/Documents/BotMaker\Test\Test.txt

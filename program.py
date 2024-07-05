@@ -18,7 +18,8 @@ class SubMenu:
         self.buttons = buttons
         self.text = text
         self.is_last = is_last
-        self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, font = ("Helvetica", 13), relief=tk.SOLID, width=35, height=2)
+        self.submenu_visible = False
+        self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, font=("Helvetica", 13), relief=tk.SOLID, width=35, height=2)
         if self.is_last:
             self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
         else:
@@ -27,30 +28,42 @@ class SubMenu:
         self.submenu = tk.Menu(root, tearoff=0)
         for btn in buttons:
             self.submenu.add_command(label=btn, command=lambda b=btn: self.add_to_entry(b), font=("Helvetica", 13))
-        
-        self.btn.bind("<Enter>", self.show_submenu)
+
+        self.btn.bind("<Button-1>", self.show_submenu)
         self.btn.bind("<Leave>", self.hide_submenu)
 
-
     def pack(self):
-        if self.btn.winfo_exists() == False:
+        if not self.btn.winfo_exists():
             self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, relief=tk.SOLID, width=35, height=2)
             if self.is_last:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
             else:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
-            
+
     def destroy(self):
         self.btn.destroy()
 
     def show_submenu(self, event):
-        button_pos_x = self.btn.winfo_rootx()
-        button_pos_y = self.btn.winfo_rooty()
-        
-        self.submenu.post(button_pos_x + self.btn.winfo_width(), button_pos_y)
+        if self.submenu_visible:
+            self.hide_submenu()
+        else:
+            button_pos_x = self.btn.winfo_rootx()
+            button_pos_y = self.btn.winfo_rooty()
+            self.submenu.post(button_pos_x + self.btn.winfo_width(), button_pos_y)
+            self.submenu_visible = True
 
-    def hide_submenu(self, event):
+    def hide_submenu(self, event=None):
         self.submenu.unpost()
+        self.submenu_visible = False
+
+    def mouse_in_widget(self, widget):
+        if isinstance(widget, tk.Menu):
+            widget_x, widget_y = widget.winfo_rootx(), widget.winfo_rooty()
+            widget_width, widget_height = widget.winfo_width(), widget.winfo_height()
+        else:
+            widget_x, widget_y = widget.winfo_rootx(), widget.winfo_rooty()
+            widget_width, widget_height = widget.winfo_width(), widget.winfo_height()
+        return widget_x <= self.parent.winfo_pointerx() <= widget_x + widget_width and widget_y <= self.parent.winfo_pointery() <= widget_y + widget_height
 
     def add_to_entry(self, button):
         global tbCode
@@ -63,6 +76,7 @@ class SubMenu:
             lines.insert(line_num, button)
         tbCode.delete("1.0", tk.END)
         tbCode.insert(tk.END, "\n".join(map(str, lines)))
+
 
 class Macro:
     def __init__(self, name, parent):
@@ -633,7 +647,7 @@ def reload_side_frame_obj():
         codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop", is_last=True))
         codingBlocks.append(SubMenu(frameMenu, ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"], "If"))
         codingBlocks.append(SubMenu(frameMenu, ["WaitSeconds( number_of_seconds )", "WaitForKeyboard( keyname )", "WaitForPixel(x, y, r, g, b)", ], "Wait"))
-        codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MouseMoveTo(x, y)"], "Mouse"))
+        codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MoveMouseTo(x, y)"], "Mouse"))
         codingBlocks.append(SubMenu(frameMenu, ["ClickOnKeyboard( keyname )", "KeyDown( keyname )", "KeyUp( keyname )", "WriteText( text )"], "Keyboard"))
 
         #Generate
