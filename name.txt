@@ -1,2 +1,2 @@
-Notepad
-C:/Users/Admin/Documents/BotMaker\Notepad\Notepad.txt
+Test
+C:/Users/Admin/Documents/BotMaker\Test\Test.txt

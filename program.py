@@ -9,6 +9,7 @@ import os
 import subprocess
 from PIL import ImageGrab
 from tkinter import Scrollbar
+import tempfile
 from tkinter import Canvas
 
 class Block:
@@ -153,6 +154,7 @@ def play_actions(act):
         elif action_type == "key_release":
             key = params[0]
             pyautogui.keyUp(key)
+    
 def text_to_action(text):
     lines = text.split("\n")
     act = []
@@ -188,12 +190,17 @@ def text_to_action(text):
     stopkey = tbStop.get()
     line_num = 1
     for line in lines:
+        line = line.split("#")[0]
+        print(line)
+
         command = line.split('(')
         command[0] = command[0].replace(" ", '')
         command[0] = command[0].replace('\t', '')
         if len(command) > 2:
             messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
             return
+        
+
         if command[0].replace(" ", "") == "ClickOnKeyboard":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -445,14 +452,42 @@ def text_to_action(text):
         messagebox.showerror("Program Error", f"Incorrect if implementation")
         return
 
-    print(code_to_exec)
-
     try:
         exec(code_to_exec)
     except SystemExit:
         messagebox.showinfo("Bot Stopped", f"Bot succesfully has been stopped using key {stopkey}")
     except:
         messagebox.showerror("Executing Error", "There was an error while executing the program")
+
+
+    libs = """
+import tkinter as tk
+from tkinter import font
+import pyautogui
+from tkinter import messagebox
+import time
+import keyboard
+import sys
+import os
+import subprocess
+from PIL import ImageGrab
+from tkinter import Scrollbar
+import tempfile
+from tkinter import Canvas
+
+"""
+    code_to_exec = libs + code_to_exec
+    show_in_notepad(code_to_exec)
+
+    
+
+def show_in_notepad(string):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as temp_file:
+        temp_file.write(string.encode('utf-8'))
+        temp_file_path = temp_file.name
+
+    os.system(f'notepad.exe {temp_file_path}')
+
 
 def get_cursor_line_number():
     cursor_position = tbCode.index(tk.INSERT)
