@@ -56,15 +56,6 @@ class SubMenu:
         self.submenu.unpost()
         self.submenu_visible = False
 
-    def mouse_in_widget(self, widget):
-        if isinstance(widget, tk.Menu):
-            widget_x, widget_y = widget.winfo_rootx(), widget.winfo_rooty()
-            widget_width, widget_height = widget.winfo_width(), widget.winfo_height()
-        else:
-            widget_x, widget_y = widget.winfo_rootx(), widget.winfo_rooty()
-            widget_width, widget_height = widget.winfo_width(), widget.winfo_height()
-        return widget_x <= self.parent.winfo_pointerx() <= widget_x + widget_width and widget_y <= self.parent.winfo_pointery() <= widget_y + widget_height
-
     def add_to_entry(self, button):
         global tbCode
         line_num = get_cursor_line_number()
@@ -579,6 +570,7 @@ def save_time(event):
 
 def helper():
     subprocess.run(['python', "posHelper.py"])
+    load_code()
 
 def save_stop(event):
     global tbStop

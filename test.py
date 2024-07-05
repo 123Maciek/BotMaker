@@ -1,24 +1,18 @@
 import tkinter as tk
 
-def create_label(root, text):
-    # Create a Frame to hold the labels
-    frame = tk.Frame(root)
-    frame.pack(pady=20)
+def bring_to_top(window):
+    # Check if window is minimized
+    if window.state() == "iconic":
+        window.deiconify()  # Restore the window from minimized state
+    window.lift()  # Bring the window to the top
 
-    # Create a Label for the main text (normal color)
-    label_text = tk.Label(frame, text=f"{text} <span style='color: green;'>+</span>", font=("Arial", 12))
-    label_text.pack(side=tk.LEFT)
+def delayed_bring_to_top(window):
+    window.after(3000, lambda: bring_to_top(window))  # Wait 3000 milliseconds (3 seconds) before bringing to top
 
-
-# Create the main tkinter window
 root = tk.Tk()
-root.title("Text with Green Plus")
+root.title("Bring to Top Example")
 
-# Example text
-example_text = "Sample Text"
-
-# Create the label dynamically
-create_label(root, example_text)
+button = tk.Button(root, text="Bring to Top after 3 seconds", command=lambda: delayed_bring_to_top(root))
+button.pack(pady=20)
 
 root.mainloop()
-
