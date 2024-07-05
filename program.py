@@ -12,37 +12,55 @@ from tkinter import Scrollbar
 import tempfile
 from tkinter import Canvas
 
-class Block:
-    def __init__(self, name, parent, isLast):
-        self.name = name
+class SubMenu:
+    def __init__(self, parent, buttons, text, is_last=False):
         self.parent = parent
-        self.isLast = isLast
-        self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=35, command=self.add_block, font=font.Font)
-        if self.isLast:
-            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 100), padx=40)
+        self.buttons = buttons
+        self.text = text
+        self.is_last = is_last
+        self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, font = ("Helvetica", 13), relief=tk.SOLID, width=35, height=2)
+        if self.is_last:
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
         else:
             self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
-    
+
+        self.submenu = tk.Menu(root, tearoff=0)
+        for btn in buttons:
+            self.submenu.add_command(label=btn, command=lambda b=btn: self.add_to_entry(b), font=("Helvetica", 13))
+        
+        self.btn.bind("<Enter>", self.show_submenu)
+        self.btn.bind("<Leave>", self.hide_submenu)
+
+
     def pack(self):
         if self.btn.winfo_exists() == False:
-            self.btn = tk.Button(self.parent, text=self.name, bd=1, relief="solid", highlightthickness=0, height=2, width=35, command=self.add_block, font=font.Font)
-            if self.isLast:
-                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 70), padx=40)
+            self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, relief=tk.SOLID, width=35, height=2)
+            if self.is_last:
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
             else:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
-        
+            
     def destroy(self):
         self.btn.destroy()
-    
-    def add_block(self):
+
+    def show_submenu(self, event):
+        button_pos_x = self.btn.winfo_rootx()
+        button_pos_y = self.btn.winfo_rooty()
+        
+        self.submenu.post(button_pos_x + self.btn.winfo_width(), button_pos_y)
+
+    def hide_submenu(self, event):
+        self.submenu.unpost()
+
+    def add_to_entry(self, button):
         global tbCode
         line_num = get_cursor_line_number()
         content = tbCode.get("1.0", tk.END)
         lines = content.splitlines()
         if lines[line_num-1] == "":
-            lines[line_num-1] = self.name
+            lines[line_num-1] = button
         else:
-            lines.insert(line_num, self.name)
+            lines.insert(line_num, button)
         tbCode.delete("1.0", tk.END)
         tbCode.insert(tk.END, "\n".join(map(str, lines)))
 
@@ -612,22 +630,11 @@ def reload_side_frame_obj():
             mcr.destroy()
 
         codingBlocks = []
-        codingBlocks.append(Block('Else', frameMenu, False))
-        codingBlocks.append(Block('EndIf', frameMenu, False))
-        codingBlocks.append(Block('IfPixelColor(x, y, r, g, b)', frameMenu, False))
-        codingBlocks.append(Block('EndLoop', frameMenu, False))
-        codingBlocks.append(Block('ExitLoop', frameMenu, False))
-        codingBlocks.append(Block('InfLoop', frameMenu, False))
-        codingBlocks.append(Block('Loop(number_of_repeats)', frameMenu, False))
-        codingBlocks.append(Block('WaitForPixel(x, y, r, g, b)', frameMenu, False))
-        codingBlocks.append(Block('WaitForKeyboard(key_name)', frameMenu, False))
-        codingBlocks.append(Block('WaitSeconds(number_of_seconds)', frameMenu, False))
-        codingBlocks.append(Block('MoveMouseTo(x, y)', frameMenu, False))
-        codingBlocks.append(Block('MouseUp(left/right)', frameMenu, False))
-        codingBlocks.append(Block('MouseDown(left/right)', frameMenu, False))
-        codingBlocks.append(Block('KeyUp(key_name)', frameMenu, False))
-        codingBlocks.append(Block('KeyDown(key_name)', frameMenu, False))
-        codingBlocks.append(Block('ClickOnKeyboard(key_name)', frameMenu, False))
+        codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop", is_last=True))
+        codingBlocks.append(SubMenu(frameMenu, ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"], "If"))
+        codingBlocks.append(SubMenu(frameMenu, ["WaitSeconds( number_of_seconds )", "WaitForKeyboard( keyname )", "WaitForPixel(x, y, r, g, b)", ], "Wait"))
+        codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MouseMoveTo(x, y)"], "Mouse"))
+        codingBlocks.append(SubMenu(frameMenu, ["ClickOnKeyboard( keyname )", "KeyDown( keyname )", "KeyUp( keyname )", "WriteText( text )"], "Keyboard"))
 
         #Generate
         for block in codingBlocks:

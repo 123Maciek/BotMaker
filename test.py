@@ -1,77 +1,38 @@
-import pyautogui
-import time
-import keyboard
-import sys
+import tkinter as tk
+from tkinter import messagebox
 
-time.sleep(5)
-end_loop = False
+class SubMenu:
+    def __init__(self, parent, buttons, text):
+        self.parent = parent
+        self.buttons = buttons
+        self.text = text
+        self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, font = ("Helvetica", 15), relief=tk.SOLID, padx=20, pady=5)
+        self.btn.pack(pady=50)
 
-def play_actions(act):
-    start = time.time()
-
-    for action in act:
-        action_type, *params, timestamp = action
-
-        elapsed_time = time.time() - start
-        delay = timestamp - elapsed_time
-
-        pyautogui.PAUSE = max(0, delay)
-
-        if action_type == "mouse_move":
-            x, y = params
-            pyautogui.moveTo(x, y)
-        elif action_type == "mouse_press":
-            x, y, button = params
-            pyautogui.mouseDown(x, y, button)
-        elif action_type == "mouse_release":
-            x, y, button = params
-            pyautogui.mouseUp(x, y, button)
-        elif action_type == "key_press":
-            key = params[0]
-            pyautogui.keyDown(key)
-        elif action_type == "key_release":
-            key = params[0]
-            pyautogui.keyUp(key)
-def text_to_action(text):
-    lines = text.split("\n")
-    act = []
-    for line in lines:
-        if line != "":
-            line = line[:-1]
-            line = line[1:]
-            line = line.replace(" ", "")
-            args = line.split(",")
-            arr = []
-            for arg in args:
-                if arg[0] == "'" and arg[len(arg)-1] == "'":
-                    arg = arg[1:]
-                    arg = arg[:-1]
-                else:
-                    try:
-                        arg = int(arg)
-                    except:
-                        arg = float(arg)
-                arr.append(arg)
-            act.append(arr)
-    return act
+        self.submenu = tk.Menu(root, tearoff=0)
+        for btn in buttons:
+            self.submenu.add_command(label=btn, command=lambda b=btn: self.add_to_entry(b), font=("Helvetica", 15))
+        
+        self.btn.bind("<Enter>", self.show_submenu)
+        self.btn.bind("<Leave>", self.hide_submenu)
 
 
+    def show_submenu(self, event):
+        button_pos_x = self.btn.winfo_rootx()
+        button_pos_y = self.btn.winfo_rooty()
+        
+        self.submenu.post(button_pos_x + self.btn.winfo_width(), button_pos_y)
 
-macroLoc = r"C:/Users/Admin/Documents\BotMaker/Notepad-Bot/Macros/"
-with open(macroLoc + 'Open-Notepad.txt', 'r') as file:
-        play_actions(text_to_action(file.read()))
-if keyboard.is_pressed('m'):
-        sys.exit()
-for i in range(3):
-        if keyboard.is_pressed('m'):
-                sys.exit()
-        with open(macroLoc + 'Write-Text.txt', 'r') as file:
-                play_actions(text_to_action(file.read()))
-        if keyboard.is_pressed('m'):
-                sys.exit()
-        with open(macroLoc + 'DeleteText.txt', 'r') as file:
-                play_actions(text_to_action(file.read()))
-        if keyboard.is_pressed('m'):
-                sys.exit()
-if keyboard.is_pressed('m'):
-        sys.exit()
+    def hide_submenu(self, event):
+        self.submenu.unpost()
+
+    def add_to_entry(self, button):
+        print(f"Clicked {button}")
+
+
+root = tk.Tk()
+root.geometry("300x200")
+
+smKeyboard = SubMenu(root, ["Option1", "Option2", "Option3"], "Keyboard")
+
+root.mainloop()
