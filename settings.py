@@ -3,6 +3,7 @@ import pyperclip
 import os
 from tkinter import messagebox
 from github import Github
+import subprocess
 import github_login
 
 def copy_path():
@@ -58,9 +59,13 @@ def load_settings():
             file.write("11")
         load_settings()
 
+def update():
+    subprocess.run(["python", "download_repository.py"])
+
 def check_for_update():
     if myVersion != serverVersion:
         versionInfo.config(text=f"Current version: v{myVersion} \n There is an update available to new version: v{serverVersion}")
+        updateButton.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
 # Read project location from file
 with open("name.txt", 'r') as file:
@@ -207,6 +212,7 @@ lVersion = tk.Label(fVersion, text="Version", font=("Helvetica", 24))
 lVersion.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 versionInfo = tk.Label(fVersion, text=f"Current version: v{myVersion} \n Program is app to date \n No downloads required :)", font=("Helvetica", 15), wraplength=700)
 versionInfo.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
+updateButton = tk.Button(fVersion, text="Update", font=("Helvetica", 15), command=update)
 check_for_update()
 
 # Grid configuration for responsive layout
