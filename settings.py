@@ -2,6 +2,8 @@ import tkinter as tk
 import pyperclip
 import os
 from tkinter import messagebox
+from github import Github
+import github_login
 
 def copy_path():
     path_to_copy = projectLoc.strip()
@@ -57,7 +59,8 @@ def load_settings():
         load_settings()
 
 def check_for_update():
-    pass
+    if myVersion != serverVersion:
+        versionInfo.config(text=f"Current version: v{myVersion} \n There is an update available to new version: v{serverVersion}")
 
 # Read project location from file
 with open("name.txt", 'r') as file:
@@ -66,6 +69,13 @@ with open("name.txt", 'r') as file:
 
 with open("version.txt", 'r') as file:
     myVersion = file.read().strip()
+
+repository_name = 'BotProgrammer'
+file_path = 'version.txt'
+g = Github(github_login.USERNAME, github_login.TOKEN)
+repo = g.get_user().get_repo(repository_name)
+contents = repo.get_contents(file_path)
+serverVersion = contents.decoded_content.decode('utf-8')
 
 settings_location = projectLoc + "set.txt"
 

@@ -30,9 +30,9 @@ def get_option(question, options):
 print(f"Current version: v{version}")
 
 anwser = get_option("Update version to: ", [f"v{main_ver}.{small_ver+1}", f"v{main_ver+1}.0", "Exit"])
-if anwser == 0:
+if anwser == 1:
     with open("version.txt", 'w') as file:
         file.write(f"{main_ver}.{small_ver+1}")
-elif anwser == 1:
+elif anwser == 2:
     with open("version.txt", "w") as file:
         file.write(f"{main_ver+1}.0")
