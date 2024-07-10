@@ -29,7 +29,7 @@ def delete_files_except_script(directory):
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
         try:
-            if os.path.isfile(file_path) and filename != script_name and filename != "name.txt" and filename != "projects.txt":
+            if os.path.isfile(file_path) and filename != script_name and filename != "name.txt" and filename != "projects.txt" and filename != "start.bat" and filename != "window.vbs":
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
@@ -45,6 +45,8 @@ clone_private_repo(github_username, github_token, repository_url, destination_di
 os.remove(destination_directory + "\\download_repository.py")
 os.remove(destination_directory + "\\name.txt")
 os.remove(destination_directory + "\\projects.txt")
+os.remove(destination_directory + "\\start.bat")
+os.remove(destination_directory + "\\window.vbs")
 
 delete_files_except_script(os.getcwd())
 
