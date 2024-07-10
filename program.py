@@ -10,7 +10,9 @@ import subprocess
 from PIL import ImageGrab
 from tkinter import Scrollbar
 import tempfile
+from tkinter import PhotoImage
 from tkinter import Canvas
+from PIL import Image, ImageTk
 
 class SubMenu:
     def __init__(self, parent, buttons, text, is_last=False):
@@ -177,6 +179,8 @@ def play_actions(act):
         elif action_type == "key_release":
             key = params[0]
             pyautogui.keyUp(key)
+    
+    pyautogui.PAUSE = 0.1
     
 def text_to_action(text):
     lines = text.split("\n")
@@ -761,6 +765,9 @@ def reload_side_frame_obj():
         btnBlocks["state"] = "normal"
         btnMacro["disabledforeground"] = "white"
 
+def open_settings():
+    subprocess.run(["python", "settings.py"])
+
 isBlocksFrame = True
 projectLoc = ""
 codingBlocks = []
@@ -832,6 +839,16 @@ tbStop = tk.Entry(root, width=30)
 lblStop.pack(side=tk.TOP)
 tbStop.pack(side=tk.TOP)
 btnHelper.pack(side=tk.TOP, pady=30)
+
+image_path = "img\\settings.png"
+image = Image.open(image_path)
+new_width = 75
+new_height = 75
+resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+photo = ImageTk.PhotoImage(resized_image)
+btnSettings = tk.Button(root, image=photo, command=open_settings)
+btnSettings.place(x=1820, y=25)
+
 tbTime.bind("<FocusOut>", save_time)
 tbStop.bind("<FocusOut>", save_stop)
 

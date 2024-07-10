@@ -1,2 +1,3 @@
 NewEL C:/Users/Admin/Documents/BotMaker\NewEL\NewEL.txt
+McDungeonsReceiveItemDupe C:/Users/Admin/Documents/BotMaker\McDungeonsReceiveItemDupe\McDungeonsReceiveItemDupe.txt
 Test C:/Users/Admin/Documents/BotMaker\Test\Test.txt
