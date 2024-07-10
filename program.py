@@ -23,7 +23,7 @@ class SubMenu:
         self.submenu_visible = False
         self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, font=("Helvetica", 13), relief=tk.SOLID, width=35, height=2)
         if self.is_last:
-            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
+            self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 600), padx=40)
         else:
             self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
 
@@ -38,7 +38,7 @@ class SubMenu:
         if not self.btn.winfo_exists():
             self.btn = tk.Label(self.parent, text=f"{self.text} \u25B6", borderwidth=1, relief=tk.SOLID, width=35, height=2)
             if self.is_last:
-                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 730), padx=40)
+                self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 600), padx=40)
             else:
                 self.btn.pack(side=tk.BOTTOM, anchor="sw", pady=(0, 17), padx=40)
 
@@ -685,7 +685,8 @@ def reload_side_frame_obj():
             mcr.destroy()
 
         codingBlocks = []
-        codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop", is_last=True))
+        codingBlocks.append(SubMenu(frameMenu, ["ShowProgramDuration", "ShowText( text )"], "Console", is_last=True))
+        codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop"))
         codingBlocks.append(SubMenu(frameMenu, ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"], "If"))
         codingBlocks.append(SubMenu(frameMenu, ["WaitSeconds( number_of_seconds )", "WaitForKeyboard( keyname )", "WaitForPixel(x, y, r, g, b)", ], "Wait"))
         codingBlocks.append(SubMenu(frameMenu, ["MouseDown( left / right )", "MouseUp( left / right )", "MoveMouseTo(x, y)", "ClickMouse( left / right )", "MoveAndClickMouse(x, y, left / right)"], "Mouse"))
