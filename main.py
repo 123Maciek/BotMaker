@@ -36,6 +36,14 @@ def createNewProject():
     subprocess.run(['python', "addproject.py"])
     loadProjectsFromFile()
 
+def check_for_reset():
+    with open("needreset.txt", 'r') as file:
+        line = file.readline()
+    if line == "True":
+        with open("needreset.txt", 'w') as file:
+            file.write("False")
+        subprocess.run(["python", "program.py"])
+
 def deleteProject():
     global  projects
     if len(projects) > 0:
@@ -60,6 +68,11 @@ def openProject():
             file.write("\n")
             file.write(projects[selected_project_number].localization)
         subprocess.run(['python', "program.py"])
+        with open("needreset.txt", 'r') as file:
+            line = file.readline()
+            if line == "True":
+                root.destroy()
+                subprocess.run(["cscript.exe", "window.vbs"])
 
 def delete_line(file_path, line_number):
     with open(file_path, 'r') as file:
@@ -202,7 +215,7 @@ btnAddProject.pack(side=tk.LEFT, anchor="n", padx=10)
 btnAddProject = tk.Button(root, text="Open Project", font=("Arial", 12), fg="White", bg="dark blue", activebackground="dark blue", activeforeground="white", relief=tk.FLAT, bd=0, command=openProject)
 btnAddProject.pack(side=tk.LEFT, anchor="n", padx=10)
 
-
+check_for_reset()
 
 # Run the Tkinter event loop
 root.mainloop()

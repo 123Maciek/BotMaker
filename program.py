@@ -767,6 +767,12 @@ def reload_side_frame_obj():
 
 def open_settings():
     subprocess.run(["python", "settings.py"])
+    with open("needreset.txt", 'r') as file:
+        line = file.readline()
+        if line == "True":
+            root.destroy()
+        
+
 
 isBlocksFrame = True
 projectLoc = ""

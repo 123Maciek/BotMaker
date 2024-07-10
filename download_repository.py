@@ -29,7 +29,7 @@ def delete_files_except_script(directory):
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
         try:
-            if os.path.isfile(file_path) and filename != script_name:
+            if os.path.isfile(file_path) and filename != script_name and filename != "name.txt" and filename != "projects.txt":
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
@@ -43,6 +43,8 @@ if os.path.isdir(destination_directory):
 clone_private_repo(github_username, github_token, repository_url, destination_directory)
 
 os.remove(destination_directory + "\\download_repository.py")
+os.remove(destination_directory + "\\name.txt")
+os.remove(destination_directory + "\\projects.txt")
 
 delete_files_except_script(os.getcwd())
 
@@ -54,4 +56,5 @@ except:
 if os.path.isdir(destination_directory):
     shutil.rmtree(destination_directory, onerror=remove_read_only)
 
-subprocess.run(['cscript.exe', "window.vbs"])
+with open("needreset.txt", 'w') as file:
+    file.write("True")
