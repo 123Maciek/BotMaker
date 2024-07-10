@@ -1,6 +1,9 @@
 import subprocess
 import os
+import sys
+import shutil
 import github_login
+import stat
 
 def clone_private_repo(username, token, repo_url, destination_path):
     # Construct the clone URL with the username and PAT
@@ -15,4 +18,40 @@ github_token = github_login.TOKEN
 repository_url = "github.com/123Maciek/BotProgrammer.git"
 destination_directory = "\\".join(os.getcwd().split("\\")[:-1]) + "\\BotProgrammerClone"
 
-#clone_private_repo(github_username, github_token, repository_url, destination_directory)
+outside_folder = "\\".join(os.getcwd().split("\\")[:-1])
+
+def remove_read_only(func, path, exc_info):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+def delete_files_except_script(directory):
+    script_name = os.path.basename(__file__)
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) and filename != script_name:
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            pass
+
+
+if os.path.isdir(destination_directory):
+    shutil.rmtree(destination_directory, onerror=remove_read_only)
+
+clone_private_repo(github_username, github_token, repository_url, destination_directory)
+
+os.remove(destination_directory + "\\download_repository.py")
+
+delete_files_except_script(os.getcwd())
+
+try:
+    shutil.copytree(destination_directory, os.getcwd(), dirs_exist_ok=True)
+except:
+    pass
+
+if os.path.isdir(destination_directory):
+    shutil.rmtree(destination_directory, onerror=remove_read_only)
+
+subprocess.run(['cscript.exe', "window.vbs"])
