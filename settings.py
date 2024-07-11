@@ -5,6 +5,7 @@ from tkinter import messagebox
 from github import Github
 import subprocess
 import github_api
+from PIL import Image, ImageTk
 
 def copy_path():
     path_to_copy = projectLoc.strip()
@@ -61,11 +62,13 @@ def load_settings():
 
 def update():
     subprocess.run(["python", "download_repository.py"])
+    root.destroy()
 
 def check_for_update():
     if myVersion != serverVersion:
         versionInfo.config(text=f"Current version: v{myVersion} \n There is an update available to new version: v{serverVersion}")
         updateButton.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
+        versionCanvas.create_image(0, 0, anchor=tk.NW, image=tk_image)
 
 # Read project location from file
 with open("name.txt", 'r') as file:
@@ -198,6 +201,18 @@ checkbox2 = tk.Checkbutton(fConsole, text="Show console", variable=checkbox_var5
 checkbox2.place(relx=0.05, rely=0.45, anchor=tk.W)
 
 #Version
+def make_bg_transparent(img, bg_color=(255, 255, 255)):
+    img = img.convert("RGBA")
+    datas = img.getdata()
+    new_data = []
+    for item in datas:
+        if item[:3] == bg_color:
+            new_data.append((255, 255, 255, 0))
+        else:
+            new_data.append(item)
+    img.putdata(new_data)
+    return img
+
 fVersion = tk.Frame(frames_container, width=window_width//2, height=(window_height-200)//2, bd=2, relief=tk.SOLID,
                     highlightbackground="black")
 fVersion.grid(row=1, column=1, padx=5, pady=5)
@@ -205,7 +220,14 @@ lVersion = tk.Label(fVersion, text="Version", font=("Helvetica", 24))
 lVersion.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 versionInfo = tk.Label(fVersion, text=f"Current version: v{myVersion} \n Program is app to date \n No downloads required :)", font=("Helvetica", 15), wraplength=700)
 versionInfo.place(relx=0.5, rely=0.3, anchor=tk.CENTER)
-updateButton = tk.Button(fVersion, text="Update", font=("Helvetica", 15), command=update)
+versionCanvas = tk.Canvas(fVersion, width=50, height=50)
+versionCanvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+image_path = 'img\\warning.png'
+pil_image = Image.open(image_path)
+pil_image = pil_image.resize((50, 50), Image.Resampling.LANCZOS)
+tk_image = ImageTk.PhotoImage(pil_image)
+
+updateButton = tk.Button(fVersion, text="Update", font=("Helvetica", 15), command=update, bg="yellow", activebackground="yellow", activeforeground="black")
 check_for_update()
 
 # Grid configuration for responsive layout
