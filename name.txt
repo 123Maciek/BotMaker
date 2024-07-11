@@ -1,2 +1,2 @@
-Test
-C:/Users/Admin/Documents/BotMaker\Test\Test.txt
+NewEL
+C:/Users/Admin/Documents/BotMaker\NewEL\NewEL.txt

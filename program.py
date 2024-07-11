@@ -13,6 +13,7 @@ import tempfile
 from tkinter import PhotoImage
 from tkinter import Canvas
 from PIL import Image, ImageTk
+import github_api
 
 class SubMenu:
     def __init__(self, parent, buttons, text, is_last=False):
@@ -847,7 +848,12 @@ lblStop.pack(side=tk.TOP)
 tbStop.pack(side=tk.TOP)
 btnHelper.pack(side=tk.TOP, pady=30)
 
-image_path = "img\\settings.png"
+myVersion = github_api.get_my_version()
+serverVersion = github_api.get_server_version()
+if myVersion == serverVersion:
+    image_path = "img\\settings.png"
+else:
+    image_path = "img\\warning_settings.png"
 image = Image.open(image_path)
 new_width = 75
 new_height = 75

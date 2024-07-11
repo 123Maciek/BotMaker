@@ -4,7 +4,7 @@ import os
 from tkinter import messagebox
 from github import Github
 import subprocess
-import github_login
+import github_api
 
 def copy_path():
     path_to_copy = projectLoc.strip()
@@ -72,15 +72,8 @@ with open("name.txt", 'r') as file:
     projectName = file.readline()
     projectLoc = "\\".join(file.readline().replace("/", "\\").split("\\")[:-1]) + "\\"
 
-with open("version.txt", 'r') as file:
-    myVersion = file.read().strip()
-
-repository_name = 'BotProgrammer'
-file_path = 'version.txt'
-g = Github(github_login.USERNAME, github_login.TOKEN)
-repo = g.get_user().get_repo(repository_name)
-contents = repo.get_contents(file_path)
-serverVersion = contents.decoded_content.decode('utf-8')
+myVersion = github_api.get_my_version()
+serverVersion = github_api.get_server_version()
 
 settings_location = projectLoc + "set.txt"
 

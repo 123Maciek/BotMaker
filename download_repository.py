@@ -2,8 +2,8 @@ import subprocess
 import os
 import sys
 import shutil
-import github_login
 import stat
+import github_api
 
 def clone_private_repo(username, token, repo_url, destination_path):
     # Construct the clone URL with the username and PAT
@@ -13,9 +13,6 @@ def clone_private_repo(username, token, repo_url, destination_path):
     subprocess.run(["git", "clone", clone_url, destination_path])
 
 # Replace these variables with your actual GitHub username, PAT, repo URL, and local destination path
-github_username = github_login.USERNAME
-github_token = github_login.TOKEN
-repository_url = "github.com/123Maciek/BotProgrammer.git"
 destination_directory = "\\".join(os.getcwd().split("\\")[:-1]) + "\\BotProgrammerClone"
 
 outside_folder = "\\".join(os.getcwd().split("\\")[:-1])
@@ -40,7 +37,7 @@ def delete_files_except_script(directory):
 if os.path.isdir(destination_directory):
     shutil.rmtree(destination_directory, onerror=remove_read_only)
 
-clone_private_repo(github_username, github_token, repository_url, destination_directory)
+github_api.download_newest_files(destination_directory)
 
 os.remove(destination_directory + "\\download_repository.py")
 os.remove(destination_directory + "\\name.txt")
