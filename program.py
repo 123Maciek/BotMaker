@@ -209,7 +209,15 @@ def text_to_action(text):
 
 """
     code_to_exec += "\n"
-    code_to_exec += f'macroLoc = r"{projectLoc[:-(len(projectName)+5)] + "/Macros/"}"\n'
+    macroLoc = f'{projectLoc[:-(len(projectName)+5)]}/Macros/'
+    code_to_exec += f'macroLoc = r"{macroLoc}"\n'
+    if setCode == 3:
+        txt_files = [f[:-4] for f in os.listdir(macroLoc) if f.endswith('.txt')]
+        for file in txt_files:
+            with open(macroLoc + file + ".txt", 'r') as f:
+                code_to_exec += f'{file} = r"""{f.read()}"""\n'
+        code_to_exec = code_to_exec.replace("macroLoc = ", "#")
+
     tabs = 0
     looptabs = []
     endlooptabs = []
@@ -452,11 +460,14 @@ def text_to_action(text):
                 return
             arg = command[1].replace(" ", '')
             arg = arg[:-1]
-            #print(arg)
-            code_to_exec += add_tabs(tabs)
-            code_to_exec += f"with open(macroLoc + '{arg}.txt', 'r') as file:\n"
-            code_to_exec += add_tabs(tabs+1)
-            code_to_exec += f'play_actions(text_to_action(file.read()))\n'
+            if setCode == 3:
+                code_to_exec += add_tabs(tabs)
+                code_to_exec += f'play_actions(text_to_action({arg}))\n'
+            else:
+                code_to_exec += add_tabs(tabs)
+                code_to_exec += f"with open(macroLoc + '{arg}.txt', 'r') as file:\n"
+                code_to_exec += add_tabs(tabs+1)
+                code_to_exec += f'play_actions(text_to_action(file.read()))\n'
         elif command[0] == "WriteText":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -550,9 +561,17 @@ from tkinter import Canvas
 
 """
     code_to_exec = libs + code_to_exec
-    show_in_notepad(code_to_exec)
-
+    code_to_exec = remove_comment_lines(code_to_exec)
+    if setCode != 1:
+        show_in_notepad(code_to_exec)
     
+
+def remove_comment_lines(input_string):
+    lines = input_string.split('\n')
+    filtered_lines = [line for line in lines if not line.strip().startswith('#')]
+    result_string = '\n'.join(filtered_lines)
+    
+    return result_string
 
 def show_in_notepad(string):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as temp_file:
@@ -769,11 +788,19 @@ def reload_side_frame_obj():
 
 def open_settings():
     subprocess.run(["python", "settings.py"])
+    load_set()
     with open("needreset.txt", 'r') as file:
         line = file.readline()
         if line == "True":
             root.destroy()
         
+
+def load_set():
+    global setCode, setConsole
+    with open(settingsLoc, 'r') as file:
+        line = file.readline()
+        setCode = int(line[0])
+        setConsole = int(line[1])
 
 
 isBlocksFrame = True
@@ -802,6 +829,10 @@ with open('name.txt', 'r') as file:
 projectLoc = loc
 name = name.replace('\n', '')
 projectName = name
+settingsLoc = "\\".join(projectLoc.replace("/", "\\").split("\\")[:-1]) + "\\set.txt"
+setCode = 1
+setConsole = 1
+load_set()
 root.title(name + " - Bot Maker")
 
 # Get the screen width and height
