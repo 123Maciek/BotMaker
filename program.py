@@ -147,6 +147,10 @@ def iteration_var(tabs):
         string += "i"
     return string
 def start():
+    global console_lines, show_program_duration, program_start_time
+    console_lines = ["CONSOLE", ""]
+    program_start_time = time.time()
+
     save_time(None)
     save_stop(None)
     content = tbCode.get("1.0", tk.END)
@@ -515,6 +519,27 @@ def text_to_action(text):
             code_to_exec += f"pyautogui.mouseDown(button='{arg}')\n"
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"pyautogui.mouseUp(button='{arg}')\n"
+        elif command[0] == "ShowProgramDuration":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            if setConsole == 1:
+                messagebox.showerror("Console Settings", "You have to enable console in settings to use console functions.")
+                return
+            show_program_duration = True
+        elif command[0] == "ShowText":
+            if len(command) != 2:
+                messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
+                return
+            if setConsole == 1:
+                messagebox.showerror("Console Settings", "You have to enable console in settings to use console functions.")
+                return
+            arg = command[1].replace(" ", '')
+            arg = arg[:-1]
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += f"arg = '{arg}'\n"
+            code_to_exec += add_tabs(tabs)
+            code_to_exec += r'console_lines.append(f"{format_time(time.time()-program_start_time)} - {arg}")' + "\n"
         elif command[0] == "":
             continue
         else:
@@ -545,26 +570,33 @@ def text_to_action(text):
 
 
     libs = """
-import tkinter as tk
-from tkinter import font
 import pyautogui
-from tkinter import messagebox
 import time
 import keyboard
 import sys
 import os
 import subprocess
 from PIL import ImageGrab
-from tkinter import Scrollbar
-import tempfile
-from tkinter import Canvas
 
 """
     code_to_exec = libs + code_to_exec
+    code_to_exec = code_to_exec.replace("console_lines", "#")
     code_to_exec = remove_comment_lines(code_to_exec)
+    if show_program_duration:
+        console_lines.append(f"{format_time(time.time() - program_start_time)} - Program duration: {time.time() - program_start_time} seconds.")
+    if setConsole == 2:
+        show_in_notepad("\n".join(console_lines))
     if setCode != 1:
         show_in_notepad(code_to_exec)
     
+
+def format_time(seconds):
+    minutes = int(seconds // 60)
+    whole_seconds = int(seconds % 60)
+    fractional_seconds = seconds - (minutes * 60 + whole_seconds)
+    fractional_str = f"{fractional_seconds:.4f}".split('.')[1]
+    
+    return f"{minutes:02}:{whole_seconds:02}:{fractional_str}"
 
 def remove_comment_lines(input_string):
     lines = input_string.split('\n')
@@ -705,7 +737,7 @@ def reload_side_frame_obj():
             mcr.destroy()
 
         codingBlocks = []
-        codingBlocks.append(SubMenu(frameMenu, ["ShowProgramDuration", "ShowText( text )"], "Console", is_last=True))
+        codingBlocks.append(SubMenu(frameMenu, ["ShowProgramDuration()", "ShowText( text )"], "Console", is_last=True))
         codingBlocks.append(SubMenu(frameMenu, ["Loop( number_of_repeats )", "ExitLoop", "InfLoop", "EndLoop"], "Loop"))
         codingBlocks.append(SubMenu(frameMenu, ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"], "If"))
         codingBlocks.append(SubMenu(frameMenu, ["WaitSeconds( number_of_seconds )", "WaitForKeyboard( keyname )", "WaitForPixel(x, y, r, g, b)", ], "Wait"))
@@ -807,6 +839,9 @@ isBlocksFrame = True
 projectLoc = ""
 codingBlocks = []
 macroBlocks = []
+console_lines = []
+program_start_time = time.time()
+show_program_duration = False
 
 def on_canvas_configure(event):
     if len(macroBlocks) >= 19:
