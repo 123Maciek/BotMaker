@@ -221,12 +221,10 @@ def text_to_action(text):
             with open(macroLoc + file + ".txt", 'r') as f:
                 code_to_exec += f'{file} = r"""{f.read()}"""\n'
         code_to_exec = code_to_exec.replace("macroLoc = ", "#")
-
+    
+    good_brackets = 1
     tabs = 0
-    looptabs = []
-    endlooptabs = []
-    iftabs = []
-    endiftabs = []
+    stack = []
     stopkey = tbStop.get()
     line_num = 1
     for line in lines:
@@ -364,12 +362,15 @@ def text_to_action(text):
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"for {iteration_var(tabs)} in range({arg}):\n"
             tabs += 1
-            looptabs.append(tabs)
+            stack.append(1)
         elif command[0] == "EndLoop":
             if len(command) != 1:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            endlooptabs.append(tabs)
+            if len(stack)==0 or stack[-1] != 1:
+                good_brackets = 0
+            else:
+                stack.pop()
             tabs -= 1
         elif command[0].replace(" ", '') == "WaitForPixel":
             if len(command) != 2:
@@ -410,7 +411,7 @@ def text_to_action(text):
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"while True:\n"
             tabs += 1
-            looptabs.append(tabs)
+            stack.append(1)
         elif command[0] == "ExitLoop":
             if len(command) != 1:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -445,7 +446,7 @@ def text_to_action(text):
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"if pix == tar:\n"
             tabs += 1
-            iftabs.append(tabs)
+            stack.append(2)
         elif command[0] == "Else":
             if len(command) != 1:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -456,8 +457,11 @@ def text_to_action(text):
             if len(command) != 1:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
                 return
-            endiftabs.append(tabs)
             tabs -= 1
+            if len(stack)==0 or stack[-1] != 2:
+                good_brackets = 0
+            else:
+                stack.pop()
         elif command[0] == "Macro":
             if len(command) != 2:
                 messagebox.showerror("Program Error", f"Bad implementation in line {line_num}. \n {line}")
@@ -533,7 +537,7 @@ def text_to_action(text):
                 return
             if setConsole == 1:
                 messagebox.showerror("Console Settings", "You have to enable console in settings to use console functions.")
-                return
+                return  
             arg = command[1].replace(" ", '')
             arg = arg[:-1]
             code_to_exec += add_tabs(tabs)
@@ -553,12 +557,11 @@ def text_to_action(text):
             code_to_exec += f"sys.exit()\n"
         line_num += 1
     
-    if looptabs != endlooptabs:
-        messagebox.showerror("Program Error", f"Incorrect loop implementation")
-        return
-    
-    if iftabs != endiftabs:
-        messagebox.showerror("Program Error", f"Incorrect if implementation")
+    if len(stack) != 0:
+        good_brackets = 0
+        
+    if good_brackets == 0:
+        messagebox.showerror("Program Error", f"Incorrect loop and if implementation")
         return
 
     try:

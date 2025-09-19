@@ -1,2 +1,2 @@
-drugi
-C:/Users/Admin/Documents/BotMaker\drugi\drugi.txt
+projekt
+C:/Users/Admin/Documents/BotMaker/bankbox\projekt\projekt.txt
