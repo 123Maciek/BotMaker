@@ -1,2 +1,2 @@
-Test
-C:/Users/Admin/Documents/BotMaker\Test\Test.txt
+drugi
+C:/Users/Admin/Documents/BotMaker\drugi\drugi.txt

@@ -820,7 +820,10 @@ def reload_side_frame_obj():
 
 def open_settings():
     subprocess.run(["python", "settings.py"])
-    load_set()
+    try:
+        load_set()
+    finally:
+        pass
     with open("needreset.txt", 'r') as file:
         line = file.readline()
         if line == "True":
@@ -829,10 +832,14 @@ def open_settings():
 
 def load_set():
     global setCode, setConsole
-    with open(settingsLoc, 'r') as file:
-        line = file.readline()
-        setCode = int(line[0])
-        setConsole = int(line[1])
+    try:
+        with open(settingsLoc, 'r') as file:
+            line = file.readline()
+            setCode = int(line[0])
+            setConsole = int(line[1])
+    except FileNotFoundError:
+        pass
+
 
 
 isBlocksFrame = True
