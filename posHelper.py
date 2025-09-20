@@ -65,6 +65,7 @@ def add_new_line_to_end_of_real_text(file_path, text):
 
     with open(file_path, 'w') as file:
         file.writelines(lines)
+    exit()
 
 
 def bring_to_top(window):
