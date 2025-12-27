@@ -438,6 +438,7 @@ def text_to_action(text):
             
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"screen_width, screen_height = pyautogui.size()\n"
+            code_to_exec += add_tabs(tabs)
             code_to_exec += f"screen = ImageGrab.grab(bbox=(0, 0, screen_width, screen_height))\n"
             code_to_exec += add_tabs(tabs)
             code_to_exec += f"pix = screen.getpixel(({args[0]}, {args[1]}))\n"
