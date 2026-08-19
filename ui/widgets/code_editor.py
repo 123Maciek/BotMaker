@@ -70,11 +70,7 @@ class CodeEditor(tk.Frame):
         )
         self.status.pack(fill="x", padx=4)
 
-        self._ghost_suggestion = None
-        self.ghost_label = tk.Label(
-            self.text, text="", bg=theme.BG_INPUT, fg=theme.GUTTER_FG,
-            font=theme.mono_font(11), bd=0, padx=0, pady=0,
-        )
+        self._build_autocomplete_popup()
 
         self.text.bind("<<Modified>>", self._on_modified)
         self.text.bind("<KeyRelease>", self._on_key_release)
@@ -83,9 +79,11 @@ class CodeEditor(tk.Frame):
         self.text.bind("<Tab>", self._on_tab)
         self.text.bind("<Shift-Tab>", self._on_shift_tab)
         self.text.bind("<Return>", self._on_return)
-        self.text.bind("<Button-1>", lambda e: self._hide_ghost())
-        self.text.bind("<FocusOut>", lambda e: self._hide_ghost())
-        self.text.bind("<Escape>", lambda e: self._hide_ghost())
+        self.text.bind("<Up>", self._on_up)
+        self.text.bind("<Down>", self._on_down)
+        self.text.bind("<Button-1>", lambda e: self._hide_autocomplete())
+        self.text.bind("<FocusOut>", lambda e: self._hide_autocomplete())
+        self.text.bind("<Escape>", lambda e: self._hide_autocomplete())
 
         self._sync_gutter()
 
@@ -127,10 +125,8 @@ class CodeEditor(tk.Frame):
 
     # --- tab / indent / enter ------------------------------------------------
     def _on_tab(self, event):
-        if self._ghost_suggestion and not self.text.tag_ranges("sel"):
-            remainder = self._ghost_suggestion
-            self._hide_ghost()
-            self.text.insert(tk.INSERT, remainder)
+        if self._autocomplete_visible():
+            self._accept_autocomplete()
             return "break"
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=False)
@@ -139,7 +135,7 @@ class CodeEditor(tk.Frame):
         return "break"
 
     def _on_shift_tab(self, event):
-        self._hide_ghost()
+        self._hide_autocomplete()
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=True)
         else:
@@ -181,21 +177,60 @@ class CodeEditor(tk.Frame):
             self.text.delete(f"{line_no}.0", f"{line_no}.{remove}")
 
     def _on_return(self, event):
-        self._hide_ghost()
+        if self._autocomplete_visible():
+            self._accept_autocomplete()
+            return "break"
         line_no = self.text.index(tk.INSERT).split(".")[0]
         line_text = self.text.get(f"{line_no}.0", f"{line_no}.end")
         leading = line_text[: len(line_text) - len(line_text.lstrip(" \t"))]
         self.text.insert(tk.INSERT, "\n" + leading)
         return "break"
 
-    # --- autocomplete (Tab to accept, VS-Code-style inline "ghost" text) -----
+    def _on_up(self, event):
+        if not self._autocomplete_visible():
+            return None
+        self._move_autocomplete_selection(-1)
+        return "break"
+
+    def _on_down(self, event):
+        if not self._autocomplete_visible():
+            return None
+        self._move_autocomplete_selection(1)
+        return "break"
+
+    # --- autocomplete (themed dropdown, Tab/Enter/click to accept) -----------
+    def _build_autocomplete_popup(self):
+        self._autocomplete_names = []  # command names, aligned to listbox rows
+        self._autocomplete_range = None  # (start_index, end_index) to replace on accept
+
+        self.autocomplete_frame = tk.Frame(
+            self.text, bg=theme.BG_PANEL, highlightthickness=1, highlightbackground=theme.BORDER,
+        )
+        self.autocomplete_list = tk.Listbox(
+            self.autocomplete_frame, bg=theme.BG_PANEL, fg=theme.FG_PRIMARY,
+            selectbackground=theme.ACCENT_GREEN, selectforeground="#ffffff",
+            activestyle="none", highlightthickness=0, bd=0, exportselection=False,
+            font=theme.mono_font(10),
+        )
+        self.autocomplete_scrollbar = ttk.Scrollbar(
+            self.autocomplete_frame, orient="vertical", command=self.autocomplete_list.yview,
+        )
+        self.autocomplete_list.configure(yscrollcommand=self.autocomplete_scrollbar.set)
+        self.autocomplete_list.pack(side="left", fill="both", expand=True)
+        self.autocomplete_scrollbar.pack(side="right", fill="y")
+        self.autocomplete_list.bind("<ButtonRelease-1>", lambda e: self._accept_autocomplete())
+        self.autocomplete_list.bind("<Return>", lambda e: self._accept_autocomplete())
+
     def _on_key_release(self, event):
         self._sync_gutter()
-        if event.keysym not in ("Tab", "ISO_Left_Tab", "Return", "Escape"):
+        if event.keysym not in ("Tab", "ISO_Left_Tab", "Return", "Escape", "Up", "Down"):
             self._update_autocomplete()
 
+    def _autocomplete_visible(self):
+        return bool(self._autocomplete_names)
+
     def _update_autocomplete(self):
-        self._hide_ghost()
+        self._hide_autocomplete()
         if self.text.tag_ranges("sel"):
             return
 
@@ -213,27 +248,62 @@ class CodeEditor(tk.Frame):
             return
         prefix = match.group(0)
 
-        candidates = [
-            c for c in tokens.ALL_COMMANDS
-            if c.lower().startswith(prefix.lower()) and c.lower() != prefix.lower()
-        ]
-        if not candidates:
-            return
-        best = sorted(candidates, key=lambda c: (len(c), c))[0]
-        remainder = best[len(prefix):]
-        if not remainder:
+        candidates = sorted(
+            (c for c in tokens.ALL_COMMANDS if c.lower().startswith(prefix.lower())),
+            key=lambda c: (c.lower() != prefix.lower(), c),
+        )
+        if not candidates or candidates == [prefix]:
             return
 
-        self._ghost_suggestion = remainder
+        self._autocomplete_names = candidates
+        self._autocomplete_range = (f"{line_no}.{col - len(prefix)}", f"{line_no}.{col}")
+
+        self.autocomplete_list.delete(0, "end")
+        for name in candidates:
+            self.autocomplete_list.insert("end", tokens.COMMAND_TEMPLATES[name])
+        self.autocomplete_list.selection_clear(0, "end")
+        self.autocomplete_list.selection_set(0)
+        self.autocomplete_list.activate(0)
+
+        visible_rows = min(len(candidates), 8)
+        row_width = max(len(tokens.COMMAND_TEMPLATES[n]) for n in candidates)
+        self.autocomplete_list.configure(height=visible_rows, width=min(row_width + 2, 40))
+
         bbox = self.text.bbox(tk.INSERT)
         if bbox:
             x, y, _w, h = bbox
-            self.ghost_label.configure(text=remainder)
-            self.ghost_label.place(x=x, y=y, height=h)
+            self.autocomplete_frame.place(x=x, y=y + h)
+            self.autocomplete_frame.lift()
 
-    def _hide_ghost(self):
-        self._ghost_suggestion = None
-        self.ghost_label.place_forget()
+    def _move_autocomplete_selection(self, delta):
+        size = self.autocomplete_list.size()
+        if size == 0:
+            return
+        current = self.autocomplete_list.curselection()
+        idx = current[0] if current else 0
+        idx = (idx + delta) % size
+        self.autocomplete_list.selection_clear(0, "end")
+        self.autocomplete_list.selection_set(idx)
+        self.autocomplete_list.activate(idx)
+        self.autocomplete_list.see(idx)
+
+    def _accept_autocomplete(self):
+        if not self._autocomplete_visible():
+            return
+        selection = self.autocomplete_list.curselection()
+        idx = selection[0] if selection else 0
+        name = self._autocomplete_names[idx]
+        template = tokens.COMMAND_TEMPLATES[name]
+        start, end = self._autocomplete_range
+        self._hide_autocomplete()
+        self.text.delete(start, end)
+        self.text.insert(start, template)
+        self.text.mark_set(tk.INSERT, f"{start} + {len(template)}c")
+
+    def _hide_autocomplete(self):
+        self._autocomplete_names = []
+        self._autocomplete_range = None
+        self.autocomplete_frame.place_forget()
 
     # --- gutter ------------------------------------------------------------
     def _on_text_scroll(self, first, last):
@@ -245,7 +315,7 @@ class CodeEditor(tk.Frame):
         self.gutter.yview(*args)
 
     def _on_mousewheel(self, event):
-        self._hide_ghost()
+        self._hide_autocomplete()
         self.text.yview_scroll(int(-1 * (event.delta / 120)), "units")
         self.gutter.yview_moveto(self.text.yview()[0])
         return "break"
