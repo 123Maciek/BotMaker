@@ -28,6 +28,34 @@ BLOCK_CLOSERS = {"EndLoop": "loop", "EndIf": "if"}
 
 MOUSE_BUTTONS = ("left", "right")
 
+# Display/insertion template for each command — the full block, not just the
+# bare name (e.g. "MoveMouseTo(x, y)"). Single source of truth for both the
+# Blocks sidebar and the code editor's autocomplete dropdown.
+COMMAND_TEMPLATES = {
+    "ShowProgramDuration": "ShowProgramDuration()",
+    "ShowText": "ShowText(text)",
+    "Loop": "Loop(number_of_repeats)",
+    "ExitLoop": "ExitLoop",
+    "InfLoop": "InfLoop",
+    "EndLoop": "EndLoop",
+    "IfPixelColor": "IfPixelColor(x, y, r, g, b)",
+    "Else": "Else",
+    "EndIf": "EndIf",
+    "WaitSeconds": "WaitSeconds(number_of_seconds)",
+    "WaitForKeyboard": "WaitForKeyboard(keyname)",
+    "WaitForPixel": "WaitForPixel(x, y, r, g, b)",
+    "MouseDown": "MouseDown(left)",
+    "MouseUp": "MouseUp(left)",
+    "MoveMouseTo": "MoveMouseTo(x, y)",
+    "ClickMouse": "ClickMouse(left)",
+    "MoveAndClickMouse": "MoveAndClickMouse(x, y, left)",
+    "ClickOnKeyboard": "ClickOnKeyboard(keyname)",
+    "KeyDown": "KeyDown(keyname)",
+    "KeyUp": "KeyUp(keyname)",
+    "WriteText": "WriteText(text)",
+    "Macro": "Macro(macro_name)",
+}
+
 
 def is_key_on_keyboard(name):
     return name in pyautogui.KEYBOARD_KEYS

@@ -18,6 +18,7 @@ _KEYWORD_RE = re.compile(r"\b(" + "|".join(re.escape(k) for k in tokens.ALL_COMM
 _NUMBER_RE = re.compile(r"(?<![\w])\d+(\.\d+)?\b")
 _STRING_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
 _COMMENT_RE = re.compile(r"#.*$")
+_WORD_PREFIX_RE = re.compile(r"[A-Za-z]+$")
 
 AUTOSAVE_DELAY_MS = 750
 DEBOUNCE_MS = 400
@@ -69,13 +70,20 @@ class CodeEditor(tk.Frame):
         )
         self.status.pack(fill="x", padx=4)
 
+        self._build_autocomplete_popup()
+
         self.text.bind("<<Modified>>", self._on_modified)
-        self.text.bind("<KeyRelease>", lambda e: self._sync_gutter())
+        self.text.bind("<KeyRelease>", self._on_key_release)
         self.text.bind("<MouseWheel>", self._on_mousewheel)
         self.gutter.bind("<MouseWheel>", self._on_mousewheel)
         self.text.bind("<Tab>", self._on_tab)
         self.text.bind("<Shift-Tab>", self._on_shift_tab)
         self.text.bind("<Return>", self._on_return)
+        self.text.bind("<Up>", self._on_up)
+        self.text.bind("<Down>", self._on_down)
+        self.text.bind("<Button-1>", lambda e: self._hide_autocomplete())
+        self.text.bind("<FocusOut>", lambda e: self._hide_autocomplete())
+        self.text.bind("<Escape>", lambda e: self._hide_autocomplete())
 
         self._sync_gutter()
 
@@ -92,17 +100,20 @@ class CodeEditor(tk.Frame):
         self._highlight_and_check()
 
     def insert_snippet_at_cursor(self, snippet):
-        """Insert a DSL snippet at the cursor's line, replacing an empty line if
-        the cursor sits on one. Bounds-checked against the trailing implicit blank
-        line (the old program.py could IndexError here)."""
+        """Insert a DSL snippet at the cursor's line. If that line is empty or
+        contains only whitespace (e.g. leading indentation with nothing typed
+        yet), the snippet is appended to the end of that same line instead of
+        starting a new one — otherwise a new line is inserted below. Bounds-
+        checked against the trailing implicit blank line (the old program.py
+        could IndexError here)."""
         line_no = int(self.text.index(tk.INSERT).split(".")[0])
         content = self.get_text()
         lines = content.split("\n")
         idx = min(line_no - 1, len(lines) - 1)
         if idx < 0:
             lines = [snippet]
-        elif lines[idx] == "":
-            lines[idx] = snippet
+        elif lines[idx].strip() == "":
+            lines[idx] = lines[idx] + snippet
         else:
             lines.insert(idx + 1, snippet)
         self.set_text("\n".join(lines))
@@ -114,6 +125,9 @@ class CodeEditor(tk.Frame):
 
     # --- tab / indent / enter ------------------------------------------------
     def _on_tab(self, event):
+        if self._autocomplete_visible():
+            self._accept_autocomplete()
+            return "break"
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=False)
         else:
@@ -121,6 +135,7 @@ class CodeEditor(tk.Frame):
         return "break"
 
     def _on_shift_tab(self, event):
+        self._hide_autocomplete()
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=True)
         else:
@@ -162,11 +177,145 @@ class CodeEditor(tk.Frame):
             self.text.delete(f"{line_no}.0", f"{line_no}.{remove}")
 
     def _on_return(self, event):
+        if self._autocomplete_visible():
+            self._accept_autocomplete()
+            return "break"
         line_no = self.text.index(tk.INSERT).split(".")[0]
         line_text = self.text.get(f"{line_no}.0", f"{line_no}.end")
         leading = line_text[: len(line_text) - len(line_text.lstrip(" \t"))]
         self.text.insert(tk.INSERT, "\n" + leading)
         return "break"
+
+    def _on_up(self, event):
+        if not self._autocomplete_visible():
+            return None
+        self._move_autocomplete_selection(-1)
+        return "break"
+
+    def _on_down(self, event):
+        if not self._autocomplete_visible():
+            return None
+        self._move_autocomplete_selection(1)
+        return "break"
+
+    # --- autocomplete (themed dropdown, Tab/Enter/click to accept) -----------
+    def _build_autocomplete_popup(self):
+        self._autocomplete_names = []  # command names, aligned to dropdown rows
+        self._autocomplete_range = None  # (start_index, end_index) to replace on accept
+        self._autocomplete_index = 0  # currently highlighted row
+
+        self.autocomplete_frame = tk.Frame(
+            self.text, bg=theme.BG_INPUT, highlightthickness=1, highlightbackground=theme.BORDER,
+        )
+        # A read-only Text (not a Listbox) so each row can have the command
+        # name colored like a keyword while the rest of the template stays
+        # the normal text color — a Listbox can only color a whole row.
+        self.autocomplete_list = tk.Text(
+            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.FG_PRIMARY,
+            highlightthickness=0, bd=0, wrap="none", cursor="arrow", takefocus=0,
+            font=theme.mono_font(11), state="disabled",
+        )
+        self.autocomplete_list.tag_configure("kw", foreground=theme.SYNTAX_KEYWORD)
+        self.autocomplete_list.tag_configure("row_selected", background=theme.SELECTION_SOFT)
+        self.autocomplete_scrollbar = ttk.Scrollbar(
+            self.autocomplete_frame, orient="vertical", command=self.autocomplete_list.yview,
+        )
+        self.autocomplete_list.configure(yscrollcommand=self.autocomplete_scrollbar.set)
+        self.autocomplete_list.pack(side="left", fill="both", expand=True)
+        self.autocomplete_scrollbar.pack(side="right", fill="y")
+        self.autocomplete_list.bind("<ButtonRelease-1>", self._on_autocomplete_click)
+
+    def _on_key_release(self, event):
+        self._sync_gutter()
+        if event.keysym not in ("Tab", "ISO_Left_Tab", "Return", "Escape", "Up", "Down"):
+            self._update_autocomplete()
+
+    def _autocomplete_visible(self):
+        return bool(self._autocomplete_names)
+
+    def _update_autocomplete(self):
+        self._hide_autocomplete()
+        if self.text.tag_ranges("sel"):
+            return
+
+        index = self.text.index(tk.INSERT)
+        line_no, col_str = index.split(".")
+        col = int(col_str)
+        line_text = self.text.get(f"{line_no}.0", f"{line_no}.end")
+        before, after = line_text[:col], line_text[col:]
+
+        if after[:1].isalpha():
+            return  # cursor is in the middle of a word, not at its end
+
+        match = _WORD_PREFIX_RE.search(before)
+        if not match:
+            return
+        prefix = match.group(0)
+
+        candidates = sorted(
+            (c for c in tokens.ALL_COMMANDS if c.lower().startswith(prefix.lower())),
+            key=lambda c: (c.lower() != prefix.lower(), c),
+        )
+        if not candidates or candidates == [prefix]:
+            return
+
+        self._autocomplete_names = candidates
+        self._autocomplete_range = (f"{line_no}.{col - len(prefix)}", f"{line_no}.{col}")
+        self._autocomplete_index = 0
+
+        self.autocomplete_list.configure(state="normal")
+        self.autocomplete_list.delete("1.0", "end")
+        for i, name in enumerate(candidates, start=1):
+            self.autocomplete_list.insert("end", tokens.COMMAND_TEMPLATES[name] + "\n")
+            self.autocomplete_list.tag_add("kw", f"{i}.0", f"{i}.{len(name)}")
+        self.autocomplete_list.configure(state="disabled")
+        self._highlight_autocomplete_row()
+
+        visible_rows = min(len(candidates), 8)
+        row_width = max(len(tokens.COMMAND_TEMPLATES[n]) for n in candidates)
+        self.autocomplete_list.configure(height=visible_rows, width=min(row_width + 2, 40))
+
+        bbox = self.text.bbox(tk.INSERT)
+        if bbox:
+            x, y, _w, h = bbox
+            self.autocomplete_frame.place(x=x, y=y + h)
+            self.autocomplete_frame.lift()
+
+    def _highlight_autocomplete_row(self):
+        self.autocomplete_list.tag_remove("row_selected", "1.0", "end")
+        row = self._autocomplete_index + 1
+        self.autocomplete_list.tag_add("row_selected", f"{row}.0", f"{row + 1}.0")
+        self.autocomplete_list.see(f"{row}.0")
+
+    def _move_autocomplete_selection(self, delta):
+        size = len(self._autocomplete_names)
+        if size == 0:
+            return
+        self._autocomplete_index = (self._autocomplete_index + delta) % size
+        self._highlight_autocomplete_row()
+
+    def _on_autocomplete_click(self, event):
+        index = self.autocomplete_list.index(f"@{event.x},{event.y}")
+        row = int(index.split(".")[0]) - 1
+        if 0 <= row < len(self._autocomplete_names):
+            self._autocomplete_index = row
+            self._accept_autocomplete()
+
+    def _accept_autocomplete(self):
+        if not self._autocomplete_visible():
+            return
+        name = self._autocomplete_names[self._autocomplete_index]
+        template = tokens.COMMAND_TEMPLATES[name]
+        start, end = self._autocomplete_range
+        self._hide_autocomplete()
+        self.text.delete(start, end)
+        self.text.insert(start, template)
+        self.text.mark_set(tk.INSERT, f"{start} + {len(template)}c")
+
+    def _hide_autocomplete(self):
+        self._autocomplete_names = []
+        self._autocomplete_range = None
+        self.autocomplete_frame.place_forget()
 
     # --- gutter ------------------------------------------------------------
     def _on_text_scroll(self, first, last):
@@ -178,6 +327,7 @@ class CodeEditor(tk.Frame):
         self.gutter.yview(*args)
 
     def _on_mousewheel(self, event):
+        self._hide_autocomplete()
         self.text.yview_scroll(int(-1 * (event.delta / 120)), "units")
         self.gutter.yview_moveto(self.text.yview()[0])
         return "break"

@@ -4,7 +4,7 @@ dsl/, execution in execution/."""
 import tkinter as tk
 from tkinter import messagebox
 
-from dsl import codegen
+from dsl import codegen, tokens
 from execution import exporter, runner
 from models.macro import MacroRepo
 from models.settings import CODE_DISPLAY_HIDDEN, CODE_DISPLAY_SHOWN_PACKED, CONSOLE_SHOWN
@@ -13,13 +13,15 @@ from ui.widgets import buttons
 from ui.widgets.code_editor import CodeEditor
 from ui.widgets.scrollable_frame import ScrollableFrame
 
+# Grouped by command name; the displayed/inserted template text for each name
+# comes from dsl.tokens.COMMAND_TEMPLATES (shared with the editor's autocomplete).
 BLOCK_CATEGORIES = [
-    ("Console", ["ShowProgramDuration()", "ShowText(text)"]),
-    ("Loop", ["Loop(number_of_repeats)", "ExitLoop", "InfLoop", "EndLoop"]),
-    ("If", ["IfPixelColor(x, y, r, g, b)", "Else", "EndIf"]),
-    ("Wait", ["WaitSeconds(number_of_seconds)", "WaitForKeyboard(keyname)", "WaitForPixel(x, y, r, g, b)"]),
-    ("Mouse", ["MouseDown(left)", "MouseUp(left)", "MoveMouseTo(x, y)", "ClickMouse(left)", "MoveAndClickMouse(x, y, left)"]),
-    ("Keyboard", ["ClickOnKeyboard(keyname)", "KeyDown(keyname)", "KeyUp(keyname)", "WriteText(text)"]),
+    ("Console", ["ShowProgramDuration", "ShowText"]),
+    ("Loop", ["Loop", "ExitLoop", "InfLoop", "EndLoop"]),
+    ("If", ["IfPixelColor", "Else", "EndIf"]),
+    ("Wait", ["WaitSeconds", "WaitForKeyboard", "WaitForPixel"]),
+    ("Mouse", ["MouseDown", "MouseUp", "MoveMouseTo", "ClickMouse", "MoveAndClickMouse"]),
+    ("Keyboard", ["ClickOnKeyboard", "KeyDown", "KeyUp", "WriteText"]),
 ]
 
 
@@ -106,19 +108,21 @@ class EditorScreen(tk.Frame):
             self._render_blocks()
         else:
             self._render_macros()
+        self.sidebar_scroll.scroll_to_top()
 
     def _render_blocks(self):
         body = self.sidebar_scroll.body
         query = self.search_var.get().strip().lower()
         any_shown = False
-        for title, snippets in BLOCK_CATEGORIES:
+        for title, names in BLOCK_CATEGORIES:
             title_matches = query in title.lower()
-            matching_snippets = snippets if title_matches else [s for s in snippets if query in s.lower()]
-            if query and not matching_snippets:
+            templates = [tokens.COMMAND_TEMPLATES[n] for n in names]
+            matching = templates if title_matches else [t for t in templates if query in t.lower()]
+            if query and not matching:
                 continue
             any_shown = True
             buttons.muted_label(body, title.upper(), bg=theme.BG_PANEL).pack(anchor="w", pady=(10, 2))
-            for snippet in matching_snippets:
+            for snippet in matching:
                 b = buttons.ghost_button(body, snippet, command=lambda s=snippet: self._insert_snippet(s))
                 b.pack(fill="x", pady=2)
         if query and not any_shown:

@@ -35,4 +35,18 @@ class ScrollableFrame(tk.Frame):
         self._canvas.itemconfig(self._window, width=event.width)
 
     def _on_mousewheel(self, event):
+        # Without this guard, scrolling when the content is shorter than the
+        # visible area still shifts the canvas's view within its (tiny)
+        # scrollregion — the body then renders lower than the canvas top,
+        # leaving blank space below it (e.g. the "Add Macro" button drifting
+        # down when there are few/no macros to scroll through).
+        bbox = self._canvas.bbox("all")
+        if bbox is None:
+            return
+        content_height = bbox[3] - bbox[1]
+        if content_height <= self._canvas.winfo_height():
+            return
         self._canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def scroll_to_top(self):
+        self._canvas.yview_moveto(0)
