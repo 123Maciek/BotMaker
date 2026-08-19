@@ -1,3 +1,2 @@
 @echo off
-cd /d "%~dp0"
-py "%~dp0main.py"
+start "" /D "%~dp0" pythonw "%~dp0main.py"

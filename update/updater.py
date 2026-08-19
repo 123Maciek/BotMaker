@@ -83,11 +83,12 @@ def verify_staging(staging_dir):
         raise UpdateError(f"Downloaded update's version.txt is unreadable: {e}") from e
 
 
-def _rename_with_retry(src, dst, attempts=6, delay=0.3):
+def _rename_with_retry(src, dst, attempts=15, delay=0.5):
     """os.rename, retrying briefly on failure. On Windows, transient external
-    file locks (antivirus scanners, the search indexer, etc. momentarily
-    touching a file) can make a rename fail with the same "used by another
-    process" error as a real lock — those usually clear within a second."""
+    file locks (antivirus scanning a freshly-launched interpreter or a
+    freshly-cloned pack file, the search indexer, etc.) can make a rename
+    fail with the same "used by another process" error as a real lock —
+    those clear on their own, but can take a few seconds."""
     for attempt in range(1, attempts + 1):
         try:
             os.rename(src, dst)
@@ -158,10 +159,13 @@ def run_update(progress_callback=None):
 
     report("Installing update...")
     # Windows refuses to rename a directory that is any process's current
-    # working directory, even with no individual file open — and that's
-    # exactly what live_dir is for this process (start.bat cd's into it
-    # before launching main.py). Step out of it before the swap, or the
-    # rename fails with WinError 32 ("used by another process").
+    # working directory, even with no individual file open — and live_dir
+    # was this process's cwd (inherited at launch). Step out of it before
+    # the swap, or the rename fails with WinError 32 ("used by another
+    # process"). Note this alone isn't sufficient if start.bat *itself*
+    # still runs the interpreter synchronously (cmd.exe then keeps live_dir
+    # as its own cwd for the app's whole lifetime, independent of anything
+    # this process does) — see start.bat's "start /D ... pythonw" launch.
     os.chdir(tempfile.gettempdir())
     atomic_swap(live_dir, staging_dir)
 
