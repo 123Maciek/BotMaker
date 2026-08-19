@@ -15,6 +15,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 import config
 
@@ -70,6 +71,21 @@ def verify_staging(staging_dir):
         raise UpdateError(f"Downloaded update's version.txt is unreadable: {e}") from e
 
 
+def _rename_with_retry(src, dst, attempts=6, delay=0.3):
+    """os.rename, retrying briefly on failure. On Windows, transient external
+    file locks (antivirus scanners, the search indexer, etc. momentarily
+    touching a file) can make a rename fail with the same "used by another
+    process" error as a real lock — those usually clear within a second."""
+    for attempt in range(1, attempts + 1):
+        try:
+            os.rename(src, dst)
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(delay)
+
+
 def atomic_swap(live_dir, staging_dir):
     """Rename live -> .old, staging -> live, then delete .old. If the second
     rename fails, .old is renamed back — the app is never left half-deleted."""
@@ -81,16 +97,16 @@ def atomic_swap(live_dir, staging_dir):
         raise UpdateError(f"Could not clear a leftover backup folder ({old_dir}): {e}") from e
 
     try:
-        os.rename(live_dir, old_dir)
+        _rename_with_retry(live_dir, old_dir)
     except OSError as e:
         raise UpdateError(f"Could not move the current installation aside: {e}. "
                            "Your installation was not modified.") from e
 
     try:
-        os.rename(staging_dir, live_dir)
+        _rename_with_retry(staging_dir, live_dir)
     except OSError as e:
         try:
-            os.rename(old_dir, live_dir)
+            _rename_with_retry(old_dir, live_dir)
         except OSError:
             raise UpdateError(
                 f"Could not move the update into place ({e}), and the rollback also failed. "
