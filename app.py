@@ -43,6 +43,7 @@ def build_root():
     import tkinter as tk
     root = tk.Tk()
     root.title("Bot Maker")
+    _fix_word_boundaries(root)
     theme.configure_style(root)
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
@@ -51,3 +52,18 @@ def build_root():
     y = (screen_height - height) // 2
     root.geometry(f"{width}x{height}+{x}+{y}")
     return root
+
+
+def _fix_word_boundaries(root):
+    """Tk/Tcl's default double-click "select word" boundary (tcl_wordchars /
+    tcl_nonwordchars) is known to behave inconsistently on Windows, sometimes
+    selecting a whole `Command(arg)`-style run instead of stopping at the
+    parens. These are process-wide Tcl variables (not per-widget), so setting
+    them once here — to the straightforward "word char = letter/digit/
+    underscore" definition — fixes double-click selection for every Text/
+    Entry widget in the app, including the code editor's DSL, e.g. double-
+    clicking "keyname" in WaitForKeyboard(keyname) now selects just that word."""
+    root.tk.eval(r"""
+        set ::tcl_wordchars {\w}
+        set ::tcl_nonwordchars {\W}
+    """)

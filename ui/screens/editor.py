@@ -106,6 +106,7 @@ class EditorScreen(tk.Frame):
             self._render_blocks()
         else:
             self._render_macros()
+        self.sidebar_scroll.scroll_to_top()
 
     def _render_blocks(self):
         body = self.sidebar_scroll.body

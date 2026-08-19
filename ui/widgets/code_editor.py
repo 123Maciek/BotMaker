@@ -18,6 +18,7 @@ _KEYWORD_RE = re.compile(r"\b(" + "|".join(re.escape(k) for k in tokens.ALL_COMM
 _NUMBER_RE = re.compile(r"(?<![\w])\d+(\.\d+)?\b")
 _STRING_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
 _COMMENT_RE = re.compile(r"#.*$")
+_WORD_PREFIX_RE = re.compile(r"[A-Za-z]+$")
 
 AUTOSAVE_DELAY_MS = 750
 DEBOUNCE_MS = 400
@@ -69,13 +70,22 @@ class CodeEditor(tk.Frame):
         )
         self.status.pack(fill="x", padx=4)
 
+        self._ghost_suggestion = None
+        self.ghost_label = tk.Label(
+            self.text, text="", bg=theme.BG_INPUT, fg=theme.GUTTER_FG,
+            font=theme.mono_font(11), bd=0, padx=0, pady=0,
+        )
+
         self.text.bind("<<Modified>>", self._on_modified)
-        self.text.bind("<KeyRelease>", lambda e: self._sync_gutter())
+        self.text.bind("<KeyRelease>", self._on_key_release)
         self.text.bind("<MouseWheel>", self._on_mousewheel)
         self.gutter.bind("<MouseWheel>", self._on_mousewheel)
         self.text.bind("<Tab>", self._on_tab)
         self.text.bind("<Shift-Tab>", self._on_shift_tab)
         self.text.bind("<Return>", self._on_return)
+        self.text.bind("<Button-1>", lambda e: self._hide_ghost())
+        self.text.bind("<FocusOut>", lambda e: self._hide_ghost())
+        self.text.bind("<Escape>", lambda e: self._hide_ghost())
 
         self._sync_gutter()
 
@@ -92,17 +102,20 @@ class CodeEditor(tk.Frame):
         self._highlight_and_check()
 
     def insert_snippet_at_cursor(self, snippet):
-        """Insert a DSL snippet at the cursor's line, replacing an empty line if
-        the cursor sits on one. Bounds-checked against the trailing implicit blank
-        line (the old program.py could IndexError here)."""
+        """Insert a DSL snippet at the cursor's line. If that line is empty or
+        contains only whitespace (e.g. leading indentation with nothing typed
+        yet), the snippet is appended to the end of that same line instead of
+        starting a new one — otherwise a new line is inserted below. Bounds-
+        checked against the trailing implicit blank line (the old program.py
+        could IndexError here)."""
         line_no = int(self.text.index(tk.INSERT).split(".")[0])
         content = self.get_text()
         lines = content.split("\n")
         idx = min(line_no - 1, len(lines) - 1)
         if idx < 0:
             lines = [snippet]
-        elif lines[idx] == "":
-            lines[idx] = snippet
+        elif lines[idx].strip() == "":
+            lines[idx] = lines[idx] + snippet
         else:
             lines.insert(idx + 1, snippet)
         self.set_text("\n".join(lines))
@@ -114,6 +127,11 @@ class CodeEditor(tk.Frame):
 
     # --- tab / indent / enter ------------------------------------------------
     def _on_tab(self, event):
+        if self._ghost_suggestion and not self.text.tag_ranges("sel"):
+            remainder = self._ghost_suggestion
+            self._hide_ghost()
+            self.text.insert(tk.INSERT, remainder)
+            return "break"
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=False)
         else:
@@ -121,6 +139,7 @@ class CodeEditor(tk.Frame):
         return "break"
 
     def _on_shift_tab(self, event):
+        self._hide_ghost()
         if self.text.tag_ranges("sel"):
             self._indent_selection(dedent=True)
         else:
@@ -162,11 +181,59 @@ class CodeEditor(tk.Frame):
             self.text.delete(f"{line_no}.0", f"{line_no}.{remove}")
 
     def _on_return(self, event):
+        self._hide_ghost()
         line_no = self.text.index(tk.INSERT).split(".")[0]
         line_text = self.text.get(f"{line_no}.0", f"{line_no}.end")
         leading = line_text[: len(line_text) - len(line_text.lstrip(" \t"))]
         self.text.insert(tk.INSERT, "\n" + leading)
         return "break"
+
+    # --- autocomplete (Tab to accept, VS-Code-style inline "ghost" text) -----
+    def _on_key_release(self, event):
+        self._sync_gutter()
+        if event.keysym not in ("Tab", "ISO_Left_Tab", "Return", "Escape"):
+            self._update_autocomplete()
+
+    def _update_autocomplete(self):
+        self._hide_ghost()
+        if self.text.tag_ranges("sel"):
+            return
+
+        index = self.text.index(tk.INSERT)
+        line_no, col_str = index.split(".")
+        col = int(col_str)
+        line_text = self.text.get(f"{line_no}.0", f"{line_no}.end")
+        before, after = line_text[:col], line_text[col:]
+
+        if after[:1].isalpha():
+            return  # cursor is in the middle of a word, not at its end
+
+        match = _WORD_PREFIX_RE.search(before)
+        if not match:
+            return
+        prefix = match.group(0)
+
+        candidates = [
+            c for c in tokens.ALL_COMMANDS
+            if c.lower().startswith(prefix.lower()) and c.lower() != prefix.lower()
+        ]
+        if not candidates:
+            return
+        best = sorted(candidates, key=lambda c: (len(c), c))[0]
+        remainder = best[len(prefix):]
+        if not remainder:
+            return
+
+        self._ghost_suggestion = remainder
+        bbox = self.text.bbox(tk.INSERT)
+        if bbox:
+            x, y, _w, h = bbox
+            self.ghost_label.configure(text=remainder)
+            self.ghost_label.place(x=x, y=y, height=h)
+
+    def _hide_ghost(self):
+        self._ghost_suggestion = None
+        self.ghost_label.place_forget()
 
     # --- gutter ------------------------------------------------------------
     def _on_text_scroll(self, first, last):
@@ -178,6 +245,7 @@ class CodeEditor(tk.Frame):
         self.gutter.yview(*args)
 
     def _on_mousewheel(self, event):
+        self._hide_ghost()
         self.text.yview_scroll(int(-1 * (event.delta / 120)), "units")
         self.gutter.yview_moveto(self.text.yview()[0])
         return "break"
