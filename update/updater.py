@@ -52,9 +52,21 @@ def stage_download(staging_dir):
     except OSError as e:
         raise UpdateError(f"Could not clear the previous download folder ({staging_dir}): {e}") from e
     try:
-        git.Repo.clone_from(config.GITHUB_REPO_URL, staging_dir)
+        repo = git.Repo.clone_from(config.GITHUB_REPO_URL, staging_dir)
+        repo.close()  # release GitPython's pack-file handles before we touch them below
     except Exception as e:
         raise UpdateError(f"Failed to download the latest version: {e}") from e
+
+    # The .git folder isn't needed at runtime — only the *next* update's own
+    # clone needs one, into a fresh .staging directory. Every install used to
+    # carry its own .git forward permanently once swapped into place, which
+    # left large, freshly-written pack files sitting in the live directory —
+    # exactly the kind of file antivirus/the search indexer scan right after
+    # they're written, which can transiently block renaming that directory.
+    try:
+        _remove_tree(os.path.join(staging_dir, ".git"))
+    except OSError as e:
+        raise UpdateError(f"Downloaded update but could not clean up its .git folder: {e}") from e
 
 
 def verify_staging(staging_dir):
