@@ -16,6 +16,25 @@ from ui.widgets import buttons
 
 CAPTURE_DELAY_MS = 5000
 
+_SNIPPET_KEYS = ("MoveMouseTo", "WaitForPixel", "IfPixelColor", "MoveAndClickMouse (left)", "MoveAndClickMouse (right)")
+
+
+def _snippet_text(key, captured):
+    if captured is None:
+        return key
+    x, y, r, g, b = captured
+    if key == "MoveMouseTo":
+        return f"MoveMouseTo({x}, {y})"
+    if key == "WaitForPixel":
+        return f"WaitForPixel({x}, {y}, {r}, {g}, {b})"
+    if key == "IfPixelColor":
+        return f"IfPixelColor({x}, {y}, {r}, {g}, {b})"
+    if key == "MoveAndClickMouse (left)":
+        return f"MoveAndClickMouse({x}, {y}, left)"
+    if key == "MoveAndClickMouse (right)":
+        return f"MoveAndClickMouse({x}, {y}, right)"
+    raise AssertionError(f"unhandled snippet key: {key}")
+
 
 def _append_snippet_to_code_file(project, snippet):
     path = project.code_file
@@ -56,12 +75,12 @@ class PositionHelperScreen(tk.Frame):
 
         self.snippet_frame = buttons.app_frame(self)
         self.snippet_frame.pack(pady=10)
-        self._snippet_buttons = []
-        for label in ("MoveMouseTo", "WaitForPixel", "IfPixelColor", "MoveAndClickMouse (left)", "MoveAndClickMouse (right)"):
-            b = buttons.ghost_button(self.snippet_frame, label, command=lambda l=label: self._insert(l))
+        self._snippet_buttons = {}
+        for key in _SNIPPET_KEYS:
+            b = buttons.ghost_button(self.snippet_frame, key, command=lambda k=key: self._insert(k))
             b.pack(pady=4, fill="x")
             b.config(state="disabled")
-            self._snippet_buttons.append(b)
+            self._snippet_buttons[key] = b
 
         buttons.ghost_button(self, "◀ Back to editor", command=self._back).pack(pady=20)
 
@@ -81,25 +100,13 @@ class PositionHelperScreen(tk.Frame):
         self.pos_var.set(f"{x}, {y}")
         self.color_var.set(f"{r}, {g}, {b}")
         self.check_btn.config(state="normal", text="Check")
-        for b_ in self._snippet_buttons:
-            b_.config(state="normal")
+        for key, b_ in self._snippet_buttons.items():
+            b_.config(state="normal", text=_snippet_text(key, self.captured))
 
-    def _insert(self, label):
+    def _insert(self, key):
         if not self.captured:
             return
-        x, y, r, g, b = self.captured
-        if label == "MoveMouseTo":
-            snippet = f"MoveMouseTo({x}, {y})"
-        elif label == "WaitForPixel":
-            snippet = f"WaitForPixel({x}, {y}, {r}, {g}, {b})"
-        elif label == "IfPixelColor":
-            snippet = f"IfPixelColor({x}, {y}, {r}, {g}, {b})"
-        elif label == "MoveAndClickMouse (left)":
-            snippet = f"MoveAndClickMouse({x}, {y}, left)"
-        elif label == "MoveAndClickMouse (right)":
-            snippet = f"MoveAndClickMouse({x}, {y}, right)"
-        else:
-            return
+        snippet = _snippet_text(key, self.captured)
         _append_snippet_to_code_file(self.project, snippet)
         self.ctx.navigator.go_to(self.return_to)
 

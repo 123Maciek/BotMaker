@@ -46,7 +46,7 @@ def build_root():
     theme.configure_style(root)
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    width, height = 1000, 700
+    width, height = 1050, 850
     x = (screen_width - width) // 2
     y = (screen_height - height) // 2
     root.geometry(f"{width}x{height}+{x}+{y}")

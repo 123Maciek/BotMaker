@@ -87,6 +87,12 @@ def entry(parent, textvariable=None, **kwargs):
         bg=theme.BG_INPUT,
         fg=theme.FG_PRIMARY,
         insertbackground=theme.FG_PRIMARY,
+        # tk.Entry uses separate colors for readonly/disabled state that don't
+        # fall back to bg/fg — without these a readonly entry shows our light
+        # fg text on Tk's default light system background (invisible).
+        readonlybackground=theme.BG_INPUT,
+        disabledbackground=theme.BG_INPUT,
+        disabledforeground=theme.FG_MUTED,
         relief=tk.FLAT,
         highlightthickness=1,
         highlightbackground=theme.BORDER,
