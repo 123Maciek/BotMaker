@@ -204,13 +204,13 @@ class CodeEditor(tk.Frame):
         self._autocomplete_range = None  # (start_index, end_index) to replace on accept
 
         self.autocomplete_frame = tk.Frame(
-            self.text, bg=theme.BG_PANEL, highlightthickness=1, highlightbackground=theme.BORDER,
+            self.text, bg=theme.BG_INPUT, highlightthickness=1, highlightbackground=theme.BORDER,
         )
         self.autocomplete_list = tk.Listbox(
-            self.autocomplete_frame, bg=theme.BG_PANEL, fg=theme.FG_PRIMARY,
-            selectbackground=theme.ACCENT_GREEN, selectforeground="#ffffff",
+            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.FG_PRIMARY,
+            selectbackground=theme.ACCENT_GREEN, selectforeground=theme.FG_PRIMARY,
             activestyle="none", highlightthickness=0, bd=0, exportselection=False,
-            font=theme.mono_font(10),
+            font=theme.mono_font(11),
         )
         self.autocomplete_scrollbar = ttk.Scrollbar(
             self.autocomplete_frame, orient="vertical", command=self.autocomplete_list.yview,
