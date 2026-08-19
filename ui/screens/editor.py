@@ -87,6 +87,10 @@ class EditorScreen(tk.Frame):
         self.macro_btn = buttons.ghost_button(toggle_row, "Macro", command=self._show_macros)
         self.macro_btn.pack(side="left", expand=True, fill="x")
 
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", lambda *a: self._refresh_sidebar())
+        buttons.entry(sidebar, textvariable=self.search_var).pack(fill="x", padx=8, pady=(0, 8))
+
         self.sidebar_scroll = ScrollableFrame(sidebar, bg=theme.BG_PANEL)
         self.sidebar_scroll.pack(fill="both", expand=True, padx=8, pady=(0, 8))
         self.sidebar_scroll.body.configure(bg=theme.BG_PANEL)
@@ -95,7 +99,6 @@ class EditorScreen(tk.Frame):
         for child in self.sidebar_scroll.body.winfo_children():
             child.destroy()
 
-        active = theme.ACCENT_BLUE if False else theme.BG_PANEL_ALT
         self.blocks_btn.config(bg=theme.SELECTION if self.sidebar_mode == "blocks" else theme.BG_PANEL_ALT)
         self.macro_btn.config(bg=theme.SELECTION if self.sidebar_mode == "macro" else theme.BG_PANEL_ALT)
 
@@ -106,21 +109,34 @@ class EditorScreen(tk.Frame):
 
     def _render_blocks(self):
         body = self.sidebar_scroll.body
+        query = self.search_var.get().strip().lower()
+        any_shown = False
         for title, snippets in BLOCK_CATEGORIES:
+            title_matches = query in title.lower()
+            matching_snippets = snippets if title_matches else [s for s in snippets if query in s.lower()]
+            if query and not matching_snippets:
+                continue
+            any_shown = True
             buttons.muted_label(body, title.upper(), bg=theme.BG_PANEL).pack(anchor="w", pady=(10, 2))
-            for snippet in snippets:
+            for snippet in matching_snippets:
                 b = buttons.ghost_button(body, snippet, command=lambda s=snippet: self._insert_snippet(s))
                 b.pack(fill="x", pady=2)
+        if query and not any_shown:
+            buttons.muted_label(body, "No blocks match your search.", bg=theme.BG_PANEL).pack(pady=10)
 
     def _render_macros(self):
         body = self.sidebar_scroll.body
         buttons.primary_button(body, "+ Add Macro", command=self._open_recorder).pack(fill="x", pady=(0, 10))
-        for name in self.macro_repo.list_names():
+        query = self.search_var.get().strip().lower()
+        names = [n for n in self.macro_repo.list_names() if query in n.lower()]
+        for name in names:
             row = buttons.app_frame(body, bg=theme.BG_PANEL)
             row.pack(fill="x", pady=2)
             b = buttons.ghost_button(row, name, command=lambda n=name: self._insert_snippet(f"Macro({n})"))
             b.pack(side="left", fill="x", expand=True)
             buttons.danger_button(row, "x", command=lambda n=name: self._delete_macro(n), padx=8, pady=4).pack(side="left")
+        if query and not names:
+            buttons.muted_label(body, "No macros match your search.", bg=theme.BG_PANEL).pack(pady=10)
 
     # --- sidebar actions -----------------------------------------------------
     def _show_blocks(self):
