@@ -2,16 +2,22 @@
 codegen, Tk widgets, and execution). This file is UI only; DSL logic lives in
 dsl/, execution in execution/."""
 import tkinter as tk
+from threading import Thread
 from tkinter import messagebox
 
 from dsl import codegen, tokens
 from execution import exporter, runner
 from models.macro import MacroRepo
 from models.settings import CODE_DISPLAY_HIDDEN, CODE_DISPLAY_SHOWN_PACKED, CONSOLE_SHOWN
+from update import version as version_mod
 from ui import theme
 from ui.widgets import buttons
 from ui.widgets.code_editor import CodeEditor
 from ui.widgets.scrollable_frame import ScrollableFrame
+from ui.widgets.thread_bridge import ThreadBridge
+
+_PULSE_COLORS = (theme.ACCENT_YELLOW, "#f2c14e")
+_PULSE_INTERVAL_MS = 650
 
 # Grouped by command name; the displayed/inserted template text for each name
 # comes from dsl.tokens.COMMAND_TEMPLATES (shared with the editor's autocomplete).
@@ -25,13 +31,15 @@ BLOCK_CATEGORIES = [
 ]
 
 
-class EditorScreen(tk.Frame):
+class EditorScreen(tk.Frame, ThreadBridge):
     def __init__(self, parent, ctx):
         super().__init__(parent, bg=theme.BG_APP)
         self.ctx = ctx
         self.project = ctx.current_project
         self.macro_repo = MacroRepo(self.project)
         self.sidebar_mode = "blocks"
+        self.init_thread_bridge()
+        self._pulse_job = None
 
         self._build_top_bar()
         self._build_body()
@@ -40,6 +48,8 @@ class EditorScreen(tk.Frame):
         self.code_editor.set_text(self._read_code())
         self._refresh_sidebar()
 
+        self._check_for_update_async()
+
     # --- layout ------------------------------------------------------------
     def _build_top_bar(self):
         bar = buttons.app_frame(self)
@@ -47,6 +57,14 @@ class EditorScreen(tk.Frame):
 
         buttons.ghost_button(bar, "◀ Projects", command=self._back_to_list).pack(side="left")
         buttons.heading_label(bar, self.project.name, font=theme.heading_font(16)).pack(side="left", padx=20)
+
+        self.update_badge = tk.Button(
+            bar, text="⬆ Update available", command=self._open_settings,
+            bg=theme.ACCENT_YELLOW, fg=theme.BG_APP, activeforeground=theme.BG_APP,
+            bd=0, relief=tk.FLAT, highlightthickness=0, font=theme.body_font(11, "bold"),
+            padx=14, pady=6, cursor="hand2",
+        )
+        # stays unpacked (hidden) until a check confirms an update actually exists
 
         buttons.primary_button(bar, "Start", command=self._start).pack(side="right")
         buttons.info_button(bar, "Position && Color Helper", command=self._open_helper).pack(side="right", padx=8)
@@ -212,6 +230,31 @@ class EditorScreen(tk.Frame):
 
     def on_leave(self):
         self.code_editor.flush()
+        self._stop_pulse()
+        self.stop_thread_bridge()
+
+    # --- update notification -----------------------------------------------
+    def _check_for_update_async(self):
+        Thread(target=self._check_for_update_worker, daemon=True).start()
+
+    def _check_for_update_worker(self):
+        available, local, remote = version_mod.check_for_update()
+        if available:
+            self.post_to_ui(self._show_update_badge, remote)
+
+    def _show_update_badge(self, remote_version):
+        self.update_badge.configure(text=f"⬆ Update available: v{remote_version}")
+        self.update_badge.pack(side="left", padx=20)
+        self._start_pulse()
+
+    def _start_pulse(self, i=0):
+        self.update_badge.configure(bg=_PULSE_COLORS[i % len(_PULSE_COLORS)])
+        self._pulse_job = self.after(_PULSE_INTERVAL_MS, lambda: self._start_pulse(i + 1))
+
+    def _stop_pulse(self):
+        if self._pulse_job:
+            self.after_cancel(self._pulse_job)
+            self._pulse_job = None
 
     # --- running -----------------------------------------------------
     def _start(self):
