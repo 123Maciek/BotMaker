@@ -1,0 +1,7 @@
+pyautogui>=0.9.54
+Pillow>=10.0.0
+pynput>=1.7.6
+keyboard>=0.13.5
+pyperclip>=1.8.2
+requests>=2.31.0
+GitPython>=3.1.40
