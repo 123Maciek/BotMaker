@@ -1,4 +1,8 @@
-with open("version.txt") as file:
+from pathlib import Path
+
+VERSION_FILE = Path(__file__).resolve().parent.parent / "version.txt"
+
+with open(VERSION_FILE) as file:
     version = file.read().strip()
 
 main_ver = int(version.split(".")[0])
@@ -31,8 +35,8 @@ print(f"Current version: v{version}")
 
 anwser = get_option("Update version to: ", [f"v{main_ver}.{small_ver+1}", f"v{main_ver+1}.0", "Exit"])
 if anwser == 1:
-    with open("version.txt", 'w') as file:
+    with open(VERSION_FILE, 'w') as file:
         file.write(f"{main_ver}.{small_ver+1}")
 elif anwser == 2:
-    with open("version.txt", "w") as file:
+    with open(VERSION_FILE, "w") as file:
         file.write(f"{main_ver+1}.0")
