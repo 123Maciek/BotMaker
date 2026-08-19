@@ -11,6 +11,7 @@ and verified.
 """
 import os
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -25,11 +26,29 @@ def install_dir():
     return os.path.dirname(os.path.abspath(config.VERSION_FILE))
 
 
+def _force_remove_readonly(func, path, exc_info):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def _remove_tree(path):
+    """rmtree that clears read-only attributes instead of silently giving up
+    on them like ignore_errors=True does. Git marks packed object files
+    read-only on Windows, so a plain ignore_errors rmtree of a partial clone
+    can leave the directory (and its contents) behind untouched — which is
+    exactly what made a later clone into the same path fail with "destination
+    path ... already exists and is not an empty directory"."""
+    if os.path.isdir(path):
+        shutil.rmtree(path, onerror=_force_remove_readonly)
+
+
 def stage_download(staging_dir):
     import git
 
-    if os.path.isdir(staging_dir):
-        shutil.rmtree(staging_dir, ignore_errors=True)
+    try:
+        _remove_tree(staging_dir)
+    except OSError as e:
+        raise UpdateError(f"Could not clear the previous download folder ({staging_dir}): {e}") from e
     try:
         git.Repo.clone_from(config.GITHUB_REPO_URL, staging_dir)
     except Exception as e:
@@ -55,8 +74,10 @@ def atomic_swap(live_dir, staging_dir):
     rename fails, .old is renamed back — the app is never left half-deleted."""
     parent = os.path.dirname(live_dir)
     old_dir = os.path.join(parent, os.path.basename(live_dir) + ".old")
-    if os.path.isdir(old_dir):
-        shutil.rmtree(old_dir, ignore_errors=True)
+    try:
+        _remove_tree(old_dir)
+    except OSError as e:
+        raise UpdateError(f"Could not clear a leftover backup folder ({old_dir}): {e}") from e
 
     try:
         os.rename(live_dir, old_dir)
@@ -77,7 +98,10 @@ def atomic_swap(live_dir, staging_dir):
         raise UpdateError(f"Could not move the update into place: {e}. "
                            "Rolled back — your installation is unchanged.") from e
 
-    shutil.rmtree(old_dir, ignore_errors=True)
+    try:
+        _remove_tree(old_dir)
+    except OSError:
+        pass  # harmless leftover backup — the update itself already succeeded
 
 
 def relaunch(live_dir):
