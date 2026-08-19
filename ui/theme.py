@@ -10,6 +10,7 @@ BG_PANEL_ALT = "#2c2f38"
 BG_INPUT = "#1a1b1f"
 BORDER = "#3a3d47"
 SELECTION = "#3a5478"
+SELECTION_SOFT = "#4f6f96"  # lighter, more muted tint of SELECTION — for hover/highlight rows
 
 FG_PRIMARY = "#e6e6e9"
 FG_MUTED = "#9a9ca6"

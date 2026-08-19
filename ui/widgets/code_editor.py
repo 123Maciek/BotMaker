@@ -200,26 +200,30 @@ class CodeEditor(tk.Frame):
 
     # --- autocomplete (themed dropdown, Tab/Enter/click to accept) -----------
     def _build_autocomplete_popup(self):
-        self._autocomplete_names = []  # command names, aligned to listbox rows
+        self._autocomplete_names = []  # command names, aligned to dropdown rows
         self._autocomplete_range = None  # (start_index, end_index) to replace on accept
+        self._autocomplete_index = 0  # currently highlighted row
 
         self.autocomplete_frame = tk.Frame(
             self.text, bg=theme.BG_INPUT, highlightthickness=1, highlightbackground=theme.BORDER,
         )
-        self.autocomplete_list = tk.Listbox(
-            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.SYNTAX_KEYWORD,
-            selectbackground=theme.ACCENT_GREEN, selectforeground=theme.SYNTAX_KEYWORD,
-            activestyle="none", highlightthickness=0, bd=0, exportselection=False,
-            font=theme.mono_font(11),
+        # A read-only Text (not a Listbox) so each row can have the command
+        # name colored like a keyword while the rest of the template stays
+        # the normal text color — a Listbox can only color a whole row.
+        self.autocomplete_list = tk.Text(
+            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.FG_PRIMARY,
+            highlightthickness=0, bd=0, wrap="none", cursor="arrow", takefocus=0,
+            font=theme.mono_font(11), state="disabled",
         )
+        self.autocomplete_list.tag_configure("kw", foreground=theme.SYNTAX_KEYWORD)
+        self.autocomplete_list.tag_configure("row_selected", background=theme.SELECTION_SOFT)
         self.autocomplete_scrollbar = ttk.Scrollbar(
             self.autocomplete_frame, orient="vertical", command=self.autocomplete_list.yview,
         )
         self.autocomplete_list.configure(yscrollcommand=self.autocomplete_scrollbar.set)
         self.autocomplete_list.pack(side="left", fill="both", expand=True)
         self.autocomplete_scrollbar.pack(side="right", fill="y")
-        self.autocomplete_list.bind("<ButtonRelease-1>", lambda e: self._accept_autocomplete())
-        self.autocomplete_list.bind("<Return>", lambda e: self._accept_autocomplete())
+        self.autocomplete_list.bind("<ButtonRelease-1>", self._on_autocomplete_click)
 
     def _on_key_release(self, event):
         self._sync_gutter()
@@ -257,13 +261,15 @@ class CodeEditor(tk.Frame):
 
         self._autocomplete_names = candidates
         self._autocomplete_range = (f"{line_no}.{col - len(prefix)}", f"{line_no}.{col}")
+        self._autocomplete_index = 0
 
-        self.autocomplete_list.delete(0, "end")
-        for name in candidates:
-            self.autocomplete_list.insert("end", tokens.COMMAND_TEMPLATES[name])
-        self.autocomplete_list.selection_clear(0, "end")
-        self.autocomplete_list.selection_set(0)
-        self.autocomplete_list.activate(0)
+        self.autocomplete_list.configure(state="normal")
+        self.autocomplete_list.delete("1.0", "end")
+        for i, name in enumerate(candidates, start=1):
+            self.autocomplete_list.insert("end", tokens.COMMAND_TEMPLATES[name] + "\n")
+            self.autocomplete_list.tag_add("kw", f"{i}.0", f"{i}.{len(name)}")
+        self.autocomplete_list.configure(state="disabled")
+        self._highlight_autocomplete_row()
 
         visible_rows = min(len(candidates), 8)
         row_width = max(len(tokens.COMMAND_TEMPLATES[n]) for n in candidates)
@@ -275,24 +281,30 @@ class CodeEditor(tk.Frame):
             self.autocomplete_frame.place(x=x, y=y + h)
             self.autocomplete_frame.lift()
 
+    def _highlight_autocomplete_row(self):
+        self.autocomplete_list.tag_remove("row_selected", "1.0", "end")
+        row = self._autocomplete_index + 1
+        self.autocomplete_list.tag_add("row_selected", f"{row}.0", f"{row + 1}.0")
+        self.autocomplete_list.see(f"{row}.0")
+
     def _move_autocomplete_selection(self, delta):
-        size = self.autocomplete_list.size()
+        size = len(self._autocomplete_names)
         if size == 0:
             return
-        current = self.autocomplete_list.curselection()
-        idx = current[0] if current else 0
-        idx = (idx + delta) % size
-        self.autocomplete_list.selection_clear(0, "end")
-        self.autocomplete_list.selection_set(idx)
-        self.autocomplete_list.activate(idx)
-        self.autocomplete_list.see(idx)
+        self._autocomplete_index = (self._autocomplete_index + delta) % size
+        self._highlight_autocomplete_row()
+
+    def _on_autocomplete_click(self, event):
+        index = self.autocomplete_list.index(f"@{event.x},{event.y}")
+        row = int(index.split(".")[0]) - 1
+        if 0 <= row < len(self._autocomplete_names):
+            self._autocomplete_index = row
+            self._accept_autocomplete()
 
     def _accept_autocomplete(self):
         if not self._autocomplete_visible():
             return
-        selection = self.autocomplete_list.curselection()
-        idx = selection[0] if selection else 0
-        name = self._autocomplete_names[idx]
+        name = self._autocomplete_names[self._autocomplete_index]
         template = tokens.COMMAND_TEMPLATES[name]
         start, end = self._autocomplete_range
         self._hide_autocomplete()
