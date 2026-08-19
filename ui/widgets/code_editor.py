@@ -207,8 +207,8 @@ class CodeEditor(tk.Frame):
             self.text, bg=theme.BG_INPUT, highlightthickness=1, highlightbackground=theme.BORDER,
         )
         self.autocomplete_list = tk.Listbox(
-            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.FG_PRIMARY,
-            selectbackground=theme.ACCENT_GREEN, selectforeground=theme.FG_PRIMARY,
+            self.autocomplete_frame, bg=theme.BG_INPUT, fg=theme.SYNTAX_KEYWORD,
+            selectbackground=theme.ACCENT_GREEN, selectforeground=theme.SYNTAX_KEYWORD,
             activestyle="none", highlightthickness=0, bd=0, exportselection=False,
             font=theme.mono_font(11),
         )
