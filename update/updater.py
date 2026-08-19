@@ -14,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 
 import config
 
@@ -128,6 +129,12 @@ def run_update(progress_callback=None):
     verify_staging(staging_dir)
 
     report("Installing update...")
+    # Windows refuses to rename a directory that is any process's current
+    # working directory, even with no individual file open — and that's
+    # exactly what live_dir is for this process (start.bat cd's into it
+    # before launching main.py). Step out of it before the swap, or the
+    # rename fails with WinError 32 ("used by another process").
+    os.chdir(tempfile.gettempdir())
     atomic_swap(live_dir, staging_dir)
 
     report("Update installed. Relaunching...")
